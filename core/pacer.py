@@ -7,7 +7,7 @@ can be corrected by timing a run against a real stopwatch (calibration).
 """
 
 FRAMES_PER_SECOND = 10
-DEFAULT_SPINS = 100_000_000  # builtin sum(range(n)) iterations per real second (a guess)
+DEFAULT_SPINS = 107_000_000  # builtin sum(range(n)) iterations per real second (about right on a laptop)
 MIN_SPINS = 1_000_000
 MIN_CALIBRATION_SECONDS = 10  # shorter runs give too imprecise a measure
 
