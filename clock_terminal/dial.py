@@ -1,70 +1,118 @@
-"""Colored ASCII analog dial: elliptical outline, marks, and hands."""
+"""Analog dial on a grid of colored cells: ticks, numerals, and hands with real lines."""
 
-from clock_terminal.ansi import BOLD, GREEN, RED, YELLOW, colorize
+from clock_terminal.ansi import colorize
 from core.time_utils import from_seconds
 from mymath import (
     cosine,
     degrees_to_radians,
+    hand_angle,
     hour_hand_angle,
     minute_hand_angle,
     second_hand_angle,
     sine,
 )
 
-DIAL_WIDTH = 25
-DIAL_HEIGHT = 13
-CENTER_COL = 12
-CENTER_ROW = 6
-RADIUS_COL = 12.0  # horizontal radius in columns
-RADIUS_ROW = 6.0   # vertical radius in rows (a cell is ~2x taller: 2:1 ratio)
+DIAL_COLS = 33
+DIAL_ROWS = 17
+CENTER_COL = 16
+CENTER_ROW = 8
+RADIUS_COLS = 16.0  # a cell is about twice as tall as wide: 2 columns per row
+RADIUS_ROWS = 8.0
+
+HOUR_LENGTH = 0.45
+MINUTE_LENGTH = 0.68
+SECOND_LENGTH = 0.9
+NUMBER_RADIUS = 0.76
 
 
-def place_cell(grid, degrees, radius, character, color):
-    """Place a character in the grid at a given radial distance and angle.
+def create_grid():
+    """Empty grid: every cell is a (character, role) pair; role None means no color."""
+    return [[(" ", None)] * DIAL_COLS for _ in range(DIAL_ROWS)]
 
-    The angle is measured in degrees clockwise from 12 o'clock.
-    """
+
+def polar_cell(fraction, degrees):
+    """(column, row) at a fraction (0 to 1) of the dial radius, degrees clockwise from 12."""
     angle = degrees_to_radians(degrees)
-    column = round(CENTER_COL + radius * RADIUS_COL * sine(angle))
-    row = round(CENTER_ROW - radius * RADIUS_ROW * cosine(angle))
-    if 0 <= row < DIAL_HEIGHT and 0 <= column < DIAL_WIDTH:
-        if color:
-            grid[row][column] = colorize(character, color)
-        else:
-            grid[row][column] = character
+    column = round(CENTER_COL + fraction * RADIUS_COLS * sine(angle))
+    row = round(CENTER_ROW - fraction * RADIUS_ROWS * cosine(angle))
+    return column, row
 
 
-def draw_hand(grid, degrees, length, character, color):
-    """Draw a hand from the center out to the given length (0 to 1)."""
-    step = 0.0
-    while step <= length:
-        place_cell(grid, degrees, step, character, color)
-        step += 0.02
+def put(grid, column, row, char, role):
+    """Write a cell if it falls inside the grid."""
+    if 0 <= column < DIAL_COLS and 0 <= row < DIAL_ROWS:
+        grid[row][column] = (char, role)
 
 
-def mark_outline(grid):
-    """Draw the elliptical outline of the dial using the ellipse equation."""
-    for row in range(DIAL_HEIGHT):
-        for column in range(DIAL_WIDTH):
-            dx = (column - CENTER_COL) / RADIUS_COL
-            dy = (row - CENTER_ROW) / RADIUS_ROW
-            distance2 = dx * dx + dy * dy
-            if abs(distance2 - 1.0) < 0.12:
-                grid[row][column] = "."
+def line_cells(start_col, start_row, end_col, end_row):
+    """Cells of the straight line between two cells (DDA algorithm)."""
+    steps = max(abs(end_col - start_col), abs(end_row - start_row))
+    if steps == 0:
+        return [(start_col, start_row)]
+    return [
+        (round(start_col + (end_col - start_col) * step / steps),
+         round(start_row + (end_row - start_row) * step / steps))
+        for step in range(steps + 1)
+    ]
 
 
-def draw_dial(total_seconds):
-    """Return the ASCII lines of the dial with its three hands."""
-    hours, minutes, clock_seconds = from_seconds(total_seconds)
-    grid = [[" "] * DIAL_WIDTH for _ in range(DIAL_HEIGHT)]
-    mark_outline(grid)
-    for mark in range(12):
-        place_cell(grid, mark * 30, 0.9, "+", BOLD)
+def hand_glyph(degrees, thick):
+    """Line character that follows the direction of a hand."""
+    direction = degrees % 180
+    if direction < 22.5 or direction >= 157.5:
+        return "┃" if thick else "│"
+    if direction < 67.5:
+        return "╱"
+    if direction < 112.5:
+        return "━" if thick else "─"
+    return "╲"
 
+
+def draw_hand(grid, degrees, length, role, thick=False):
+    """Draw a hand from the center to a fraction of the radius."""
+    end_col, end_row = polar_cell(length, degrees)
+    glyph = hand_glyph(degrees, thick)
+    for column, row in line_cells(CENTER_COL, CENTER_ROW, end_col, end_row):
+        put(grid, column, row, glyph, role)
+
+
+def draw_marks(grid):
+    """60 ticks on the rim: a dot per minute and a bullet per hour."""
+    for minute in range(60):
+        column, row = polar_cell(1.0, hand_angle(minute, 60))
+        put(grid, column, row, "•" if minute % 5 == 0 else "·", "ticks")
+
+
+def draw_numerals(grid):
+    """Numbers 1 to 12 inside the rim."""
+    for hour in range(1, 13):
+        column, row = polar_cell(NUMBER_RADIUS, hand_angle(hour, 12))
+        text = str(hour)
+        start = column - (len(text) - 1) // 2
+        for offset, char in enumerate(text):
+            put(grid, start + offset, row, char, "numbers")
+
+
+def build_grid(total_seconds):
+    """Compose the dial grid for a time of day."""
+    hours, minutes, seconds = from_seconds(total_seconds)
+    grid = create_grid()
+    draw_marks(grid)
+    draw_numerals(grid)
     # The hour hand moves in whole minutes (seconds are not counted).
-    draw_hand(grid, hour_hand_angle(hours, minutes, 0), 0.5, "#", YELLOW)
-    draw_hand(grid, minute_hand_angle(minutes, clock_seconds), 0.8, "=", GREEN)
-    draw_hand(grid, second_hand_angle(clock_seconds), 0.9, "*", RED)
-    grid[CENTER_ROW][CENTER_COL] = colorize("o", BOLD)
+    draw_hand(grid, hour_hand_angle(hours, minutes, 0), HOUR_LENGTH, "hour", thick=True)
+    draw_hand(grid, minute_hand_angle(minutes, seconds), MINUTE_LENGTH, "minute")
+    draw_hand(grid, second_hand_angle(seconds), SECOND_LENGTH, "second")
+    put(grid, CENTER_COL, CENTER_ROW, "●", "second")
+    return grid
 
-    return ["".join(row) for row in grid]
+
+def draw_dial(total_seconds, theme):
+    """Return the lines of the dial, colored with the roles of a theme."""
+    lines = []
+    for row in build_grid(total_seconds):
+        pieces = []
+        for char, role in row:
+            pieces.append(colorize(char, theme[role]) if role else char)
+        lines.append("".join(pieces))
+    return lines

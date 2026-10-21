@@ -12,9 +12,9 @@ from clock_svg.constants import (
     COLOR_BACKGROUND,
     COLOR_HAND,
     COLOR_SECOND_HAND,
-    FONT_MONO,
     FONT_TEXT,
 )
+from clock_svg.digital import clock_readout_svg
 from clock_svg.stopwatch_svg import stopwatch_svg
 from clock_svg.elements import bezel_svg, hand, numerals_svg, tick_marks_svg
 
@@ -33,12 +33,9 @@ def hands_svg(time_seconds):
     ]
 
 
-def digital_texts_svg(time_seconds, alarm_seconds, x_digital):
-    """Static digital time and, if there is an alarm, its label."""
-    parts = [
-        f'<text x="{x_digital}" y="418" text-anchor="middle" font-family="{FONT_MONO}" '
-        f'font-size="30" fill="{COLOR_HAND}">{format_time(time_seconds)}</text>'
-    ]
+def digital_texts_svg(time_seconds, alarm_seconds, x_digital, twelve_hour):
+    """Digital time that keeps counting and, if there is an alarm, its label."""
+    parts = clock_readout_svg(x_digital, 418, time_seconds, 30, COLOR_HAND, twelve_hour)
     if alarm_seconds is not None:
         parts.append(
             f'<text x="{x_digital}" y="448" text-anchor="middle" font-size="14" '
@@ -47,7 +44,7 @@ def digital_texts_svg(time_seconds, alarm_seconds, x_digital):
     return parts
 
 
-def build_svg(time_seconds, alarm_seconds, stopwatch_seconds):
+def build_svg(time_seconds, alarm_seconds, stopwatch_seconds, twelve_hour=False):
     """Assemble the complete SVG document as text."""
     # With a stopwatch, the digital time moves left to make room for the mini-dial.
     x_digital = 120 if stopwatch_seconds is not None else CENTER_X
@@ -68,7 +65,7 @@ def build_svg(time_seconds, alarm_seconds, stopwatch_seconds):
     parts.extend(hands_svg(time_seconds))
     if alarm_seconds is not None:
         parts.append(alarm_notice_svg(time_seconds, alarm_seconds))
-    parts.extend(digital_texts_svg(time_seconds, alarm_seconds, x_digital))
+    parts.extend(digital_texts_svg(time_seconds, alarm_seconds, x_digital, twelve_hour))
     if stopwatch_seconds is not None:
         parts.append(stopwatch_svg(stopwatch_seconds))
 
