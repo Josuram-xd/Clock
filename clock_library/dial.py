@@ -9,15 +9,15 @@ from mymath import (
     second_hand_angle,
 )
 
-CANVAS_COLS = 32
-CANVAS_ROWS = 16  # a row is 2 pixels tall, so the canvas is 32 x 32 pixels
-CENTER = 16
-RADIUS = 15
-NUMBER_RADIUS = 11.5
-HOUR_LENGTH = 7
-MINUTE_LENGTH = 10.5
-SECOND_LENGTH = 13
-ALARM_RADIUS = 15
+CANVAS_COLS = 40
+CANVAS_ROWS = 20  # a row is 2 pixels tall, so the canvas is 40 x 40 pixels
+CENTER = 20
+RADIUS = 19
+NUMBER_RADIUS = 14.5
+HOUR_LENGTH = 9
+MINUTE_LENGTH = 13.5
+SECOND_LENGTH = 17
+ALARM_RADIUS = 19
 
 BACKGROUND = "navy"
 BEZEL = "slate"
