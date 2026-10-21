@@ -84,7 +84,3 @@ Sin `time` no hay `sleep` ni lectura del reloj del sistema, y sin librerías no 
 - Las versiones 1 y 2 se manejan con Ctrl+C y un menú, no con teclas en vivo.
 - En la versión 3 el SVG arranca desde la hora escrita cada vez que se abre.
 - El profesor indicó que SVG, librería propia y terminal no son válidos como frontend. Estas tres versiones son las alternativas posibles bajo la regla de no importar módulos externos al proyecto.
-
-## Cómo se construyó
-
-Cada versión la construyó un agente con un modelo económico, la revisó un agente con un modelo intermedio y una revisión final independiente probó las tres de punta a punta. Después se reestructuró en paquetes sin cambiar el comportamiento: los paquetes pasaron de `reloj_*`, `mimath` y `nucleo` a `clock_*`, `mymath` y `core`, con nombres de módulos en inglés.
