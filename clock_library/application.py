@@ -4,18 +4,14 @@ from clock_library import minitk as tk
 from clock_library.actions import build_actions
 from clock_library.interface import ClockUi
 from clock_library.state import advance_one_second, create_state
-from core.time_utils import parse_time
+from core.time_input import ask_time_of_day
 
 TICK_MS = 1000
 
 
 def ask_start_time():
-    """Ask for the start time until it is valid."""
-    while True:
-        seconds = parse_time(input("Hora actual (HH:MM:SS): "), two_digits=False)
-        if seconds is not None:
-            return seconds
-        print("Hora inválida. Use HH:MM:SS con HH de 00 a 23 y MM/SS de 00 a 59.")
+    """Ask for the start time (24 h, or 12 h with am/pm) until it is valid."""
+    return ask_time_of_day("Hora actual (ej. 14:30, 2:30 pm, 1430): ")
 
 
 def run(start_seconds):
