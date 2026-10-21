@@ -1,80 +1,92 @@
-"""Clock 2 screen: status texts and construction of the full image."""
+"""Clock 2 screen: the side panel and construction of the full image."""
 
 from clock_terminal.ansi import (
+    BELL,
     BOLD,
-    CLEAR_SCREEN,
-    CYAN,
-    RED_BLINK,
-    WHITE,
+    CLEAR_BELOW,
+    CLEAR_LINE,
+    CURSOR_HOME,
+    DIM,
     YELLOW,
     center_text,
     colorize,
     draw_box,
+    pad_to,
 )
-from clock_terminal.dial import draw_dial
+from clock_terminal.dial import DIAL_COLS, draw_dial
 from clock_terminal.digits import draw_digital
+from clock_terminal.themes import current_theme
+from core.alarm import seconds_until_alarm
+from core.pacer import FRAMES_PER_SECOND
 from core.stopwatch import describe_stopwatch, format_stopwatch
 from core.time_utils import format_time, format_time_12h
 
-BOX_WIDTH = 60
+PANEL_WIDTH = 31
+SEPARATOR = " │ "
+BOX_WIDTH = DIAL_COLS + len(SEPARATOR) + PANEL_WIDTH
+BLINK_FRAME = FRAMES_PER_SECOND // 2  # the colon is hidden during the second half of a second
 
 
 def clock_text(state):
-    """Return (time text, AM/PM suffix) according to the chosen format."""
+    """Return (time text, caption) according to the chosen format."""
     if state["format_24h"]:
-        return format_time(state["seconds"]), ""
-    return format_time_12h(state["seconds"])
+        return format_time(state["seconds"]), "formato 24 h"
+    text, suffix = format_time_12h(state["seconds"])
+    return text, suffix + " · formato 12 h"
 
 
-def stopwatch_text(state):
-    """Return the stopwatch in MM:SS format with its status."""
-    stopwatch = state["stopwatch"]
-    return (format_stopwatch(stopwatch["seconds"])
-            + " (" + describe_stopwatch(stopwatch) + ")")
-
-
-def alarm_line(state):
-    """Return the alarm line; it blinks in red while ringing."""
+def alarm_lines(state, theme):
+    """Two lines with the alarm: its time and a countdown, or the ringing notice."""
     alarm = state["alarm"]
     if alarm["ringing"]:
-        if state["blink"]:
-            return colorize("¡ALARMA!", RED_BLINK)
-        return " " * len("¡ALARMA!")
+        if state["frame"] < BLINK_FRAME:
+            return [colorize("¡¡ ALARMA !!", theme["alert"]), "Ctrl+C → a para quitarla"]
+        return ["", ""]
     if alarm["time"] is None:
-        return "Alarma: ninguna"
-    return "Alarma: " + format_time(alarm["time"])
+        return ["ALARMA  ninguna", colorize("(Ctrl+C → a HH:MM:SS)", DIM)]
+    left = seconds_until_alarm(state["seconds"], alarm["time"])
+    return ["ALARMA  " + format_time(alarm["time"]), colorize("suena en " + format_time(left), DIM)]
 
 
-def box_lines(state):
-    """Box content: title, dial, digital time, and status."""
-    lines = [center_text(colorize("RELOJ DE TERMINAL", BOLD + CYAN), BOX_WIDTH), None]
+def panel_lines(state, theme):
+    """The 17 lines of the right panel: title, digital time, stopwatch, alarm, and status."""
+    def center(text):
+        return center_text(text, PANEL_WIDTH)
 
-    for row in draw_dial(state["seconds"]):
-        lines.append(center_text(row, BOX_WIDTH))
-    lines.append(None)
+    text, caption = clock_text(state)
+    digits = draw_digital(text, state["frame"] < BLINK_FRAME)
+    stopwatch = state["stopwatch"]
+    icon = "▶" if stopwatch["active"] else "■"
+    speed = "calibrada" if state["calibrated"] else "sin calibrar"
 
-    text, suffix = clock_text(state)
-    for row in draw_digital(text):
-        lines.append(center_text(colorize(row, WHITE + BOLD), BOX_WIDTH))
-    lines.append(center_text(suffix, BOX_WIDTH))
-    lines.append(None)
-
-    label = "24h" if state["format_24h"] else "12h"
-    lines.append(" Formato: " + label + "   Cronómetro: " + stopwatch_text(state))
-    lines.append(" " + alarm_line(state))
+    lines = [center(colorize("RELOJ DE TERMINAL", theme["title"])), ""]
+    lines += [center(colorize(row, theme["digits"])) for row in digits]
+    lines += [center(colorize(caption, DIM)), ""]
+    lines += [
+        center(colorize("CRONÓMETRO  ", theme["label"]) + format_stopwatch(stopwatch["seconds"])),
+        center(icon + " " + describe_stopwatch(stopwatch)),
+        "",
+    ]
+    lines += [center(line) for line in alarm_lines(state, theme)]
+    lines += ["", center("Tema: " + theme["name"]), center("Velocidad: " + speed), ""]
+    lines.append(center(colorize("Ctrl+C = pausa y menú", DIM)))
     return lines
 
 
 def build_screen(state):
-    """Build the full screen text (without clearing it)."""
-    output = draw_box(box_lines(state), BOX_WIDTH)
-    output.append(colorize(" [Enter] +1 s    [n] avanzar N s    [c] cronómetro", CYAN))
-    output.append(colorize(" [a] alarma (vacío = quitar)    [f] 12h/24h    [q] salir", CYAN))
-    if state["message"]:
-        output.append(colorize(" " + state["message"], YELLOW))
-    return "\n".join(output)
+    """Build the full screen text: boxed dial and panel, plus the notice line."""
+    theme = current_theme(state)
+    dial = draw_dial(state["seconds"], theme)
+    separator = colorize(SEPARATOR, theme["frame"])
+    panel = panel_lines(state, theme)
+    rows = [pad_to(d, DIAL_COLS) + separator + pad_to(p, PANEL_WIDTH) for d, p in zip(dial, panel)]
+    output = draw_box(rows, BOX_WIDTH, theme["frame"])
+    output.append(colorize(" " + state["message"], BOLD + YELLOW) if state["message"] else "")
+    return output
 
 
 def draw_screen(state):
-    """Clear the screen and draw the clock."""
-    print(CLEAR_SCREEN + build_screen(state))
+    """Redraw the clock in place, without clearing the screen (no flicker)."""
+    lines = [line + CLEAR_LINE for line in build_screen(state)]
+    ring = BELL if state["alarm"]["ringing"] and state["frame"] == 0 else ""
+    print(CURSOR_HOME + "\n".join(lines) + "\n" + CLEAR_BELOW + ring, end="", flush=True)

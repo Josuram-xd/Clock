@@ -1,28 +1,32 @@
-"""Main program for Clock 2: screen loop and key handling."""
+"""Main program for Clock 2: ask the time, run the live clock, open the menu on Ctrl+C."""
 
-from clock_terminal.actions import ask_start_time, process_option
-from clock_terminal.ansi import CLEAR_SCREEN, CYAN, colorize
-from clock_terminal.screen import draw_screen
+from clock_terminal.ansi import CLEAR_SCREEN, CYAN, HIDE_CURSOR, SHOW_CURSOR, colorize
+from clock_terminal.commands import ask_start_time, pause_menu
+from clock_terminal.live import run_clock
 from clock_terminal.state import create_state
 
 
 def main_loop():
-    """Ask for the time, draw, and process keys until the user quits."""
-    print(CLEAR_SCREEN + colorize("Bienvenido al reloj de terminal.", CYAN))
+    """Alternate between the running clock and the pause menu until the user quits."""
+    print(CLEAR_SCREEN + colorize("Reloj de terminal.", CYAN))
+    print("El reloj corre solo. Ctrl+C lo pausa y abre el menú (alarma, cronómetro, tema...).")
+    print("Si va muy rápido o muy lento: Ctrl+C y luego el comando k (calibrar).")
     state = create_state(ask_start_time())
+    print(CLEAR_SCREEN + HIDE_CURSOR, end="")
     keep_running = True
     while keep_running:
-        state["blink"] = not state["blink"]
-        draw_screen(state)
-        state["message"] = ""
-        option = input("Opción: ").strip().lower()
-        keep_running = process_option(state, option)
-    print("Hasta luego.")
+        run_clock(state)
+        print(SHOW_CURSOR, end="")
+        keep_running = pause_menu(state)
+        print(HIDE_CURSOR, end="")
+    print(SHOW_CURSOR + "\nHasta luego.")
 
 
 def main():
-    """Run the clock and exit gracefully if the input is closed."""
+    """Run the clock and always give the cursor back, even if the input is closed."""
     try:
         main_loop()
     except (EOFError, KeyboardInterrupt):
-        print("\nHasta luego.")
+        print(SHOW_CURSOR + "\nHasta luego.")
+    finally:
+        print(SHOW_CURSOR, end="")

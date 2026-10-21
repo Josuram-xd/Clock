@@ -39,8 +39,7 @@ def finish_calibration(pacer, real_seconds):
     if real_seconds < MIN_CALIBRATION_SECONDS or frames == 0:
         return None
     believed_seconds = frames / FRAMES_PER_SECOND
-    # The clock believed `believed_seconds` passed but `real_seconds` did: if the
-    # real time was longer it ran too fast and needs more work per second.
-    pacer["spins"] = max(MIN_SPINS, round(pacer["spins"] * real_seconds / believed_seconds))
+    # The clock counted `believed_seconds` while `real_seconds` really passed. If it
+    # counted more than really passed it ran too fast, so each second needs more work.
+    pacer["spins"] = max(MIN_SPINS, round(pacer["spins"] * believed_seconds / real_seconds))
     return round(believed_seconds / real_seconds * 100)
-
