@@ -12,12 +12,12 @@ from mymath import (
     sine,
 )
 
-DIAL_COLS = 33
-DIAL_ROWS = 17
-CENTER_COL = 16
-CENTER_ROW = 8
-RADIUS_COLS = 16.0  # a cell is about twice as tall as wide: 2 columns per row
-RADIUS_ROWS = 8.0
+DIAL_COLS = 41
+DIAL_ROWS = 21
+CENTER_COL = 20
+CENTER_ROW = 10
+RADIUS_COLS = 20.0  # a cell is about twice as tall as wide: 2 columns per row
+RADIUS_ROWS = 10.0
 
 HOUR_LENGTH = 0.45
 MINUTE_LENGTH = 0.68

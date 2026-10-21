@@ -16,6 +16,8 @@ Cada versión se ejecuta y evalúa sola; las tres comparten los paquetes `mymath
 
 ## Cómo se ve y cómo se usa
 
+La hora se escribe como quieras: `14:30`, `2:30 pm`, `7am` o solo dígitos (`1430`, `230pm`); los segundos son opcionales y, si escribes una hora de 1 a 12 sin am/pm, pregunta AM o PM (Enter la deja como 24 h).
+
 Ventana con la esfera analógica (dibujada con un `Canvas`), la hora digital en bloques, cronómetro, alarma y una fila de botones. El reloj avanza por su cuenta: no hay que pulsar nada para que se mueva.
 
 Sin `time` ni lectura de teclado no se puede esperar un segundo ni detectar una tecla mientras corre el programa, así que:
@@ -88,7 +90,7 @@ clock_library/
 
 ## Cómo ejecutarlo
 
-Desde la raíz del repositorio, en una terminal con colores de 24 bits y UTF-8 (Windows Terminal) de al menos 80 columnas por 24 filas:
+Desde la raíz del repositorio, en una terminal con colores de 24 bits y UTF-8 (Windows Terminal) de al menos 80 columnas por 26 filas:
 
 ```
 py -3 -m clock_library

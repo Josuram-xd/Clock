@@ -8,25 +8,23 @@ from clock_terminal.themes import THEMES
 from core.alarm import alarm_matches, clear_alarm, set_alarm, silence_alarm
 from core.pacer import MIN_CALIBRATION_SECONDS, finish_calibration, start_calibration
 from core.stopwatch import reset_stopwatch, start_stopwatch, stop_stopwatch
-from core.time_utils import format_time, parse_time
+from core.time_input import EXAMPLES, ask_time_of_day
+from core.time_utils import format_time, parse_clock_time
 
 ADVANCE_LIMIT = 604800  # one week in seconds
 
 MENU = """Reloj en pausa. Escribe un comando (Enter = seguir):
-  h [HH:MM:SS]   cambiar la hora            n [N]   avanzar N segundos
+  h [hora]       cambiar la hora            n [N]   avanzar N segundos
   c [i|p|r]      cronómetro: iniciar, parar, reiniciar
-  a [HH:MM:SS]   fijar la alarma (a quitar = silenciar y borrar)
+  a [hora]       fijar la alarma (a quitar = silenciar y borrar)
+                 la hora vale 14:30, 2:30 pm, 7am, 1430... (segundos opcionales)
   f              12 h / 24 h                t       cambiar el tema
   k              calibrar la velocidad      q       salir"""
 
 
 def ask_start_time():
-    """Ask for the start time and repeat until it is valid."""
-    while True:
-        seconds = parse_time(input("Hora actual (HH:MM:SS): "), two_digits=False)
-        if seconds is not None:
-            return seconds
-        print("Hora no válida. Usa HH:MM:SS (00-23, 00-59, 00-59).")
+    """Ask for the start time (24 h, or 12 h with am/pm) and repeat until it is valid."""
+    return ask_time_of_day("Hora actual (ej. 14:30, 2:30 pm, 1430): ")
 
 
 def argument_or_ask(argument, question):
@@ -34,11 +32,18 @@ def argument_or_ask(argument, question):
     return argument if argument else input(question).strip()
 
 
+def argument_time(argument, question):
+    """Time typed after the command, or asked for (with the AM/PM question) when omitted."""
+    if argument:
+        return parse_clock_time(argument)
+    return ask_time_of_day(question, allow_empty=True)
+
+
 def cmd_time(state, argument):
     """Set the time of the day."""
-    seconds = parse_time(argument_or_ask(argument, "Nueva hora (HH:MM:SS): "), two_digits=False)
+    seconds = argument_time(argument, "Nueva hora (vacío = cancelar): ")
     if seconds is None:
-        set_message(state, "Hora no válida.")
+        set_message(state, "Hora no cambiada. " + EXAMPLES)
         return
     state["seconds"] = seconds
     state["frame"] = 0
@@ -75,14 +80,16 @@ def cmd_stopwatch(state, argument):
 def cmd_alarm(state, argument):
     """Set the alarm; 'quitar' (or an empty answer) silences and clears it."""
     alarm = state["alarm"]
-    text = argument_or_ask(argument, "Alarma HH:MM:SS (vacío = quitar): ")
-    if text == "" or text.lower() == "quitar":
+    if argument.lower() == "quitar":
+        seconds = None
+    else:
+        seconds = argument_time(argument, "Alarma (vacío = quitar): ")
+        if argument and seconds is None:
+            set_message(state, "Hora de alarma no válida. " + EXAMPLES)
+            return
+    if seconds is None:
         clear_alarm(alarm)
         set_message(state, "Alarma quitada.")
-        return
-    seconds = parse_time(text, two_digits=False)
-    if seconds is None:
-        set_message(state, "Hora de alarma no válida.")
         return
     set_alarm(alarm, seconds)
     silence_alarm(alarm)

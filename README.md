@@ -40,6 +40,7 @@ Las reglas dejan dudas sobre qué cuenta como frontend sin usar librerías. En v
 │   ├── time_utils.py         validación HH:MM:SS, conversiones y formatos
 │   ├── stopwatch.py          estado y operaciones del cronómetro
 │   ├── alarm.py              estado y operaciones de la alarma
+│   ├── time_input.py         pregunta una hora: segundos opcionales, am/pm y sin ':'
 │   └── pacer.py              espera sin reloj del sistema y calibración
 ├── clock_library/            versión 1 (ventana con minitk, una mini-librería tipo tkinter)
 ├── clock_terminal/           versión 2 (terminal ANSI)
@@ -65,7 +66,7 @@ py -3 -m clock_svg
 
 ## Funcionalidades comunes
 
-- Hora inicial pedida con `input()` y validada (`HH:MM:SS`).
+- Hora inicial pedida con `input()` y validada. En las versiones 1 y 2 acepta `14:30`, `2:30 pm`, `1430`…: segundos opcionales, am/pm y sin escribir los `:`.
 - El reloj corre solo (versiones 1 y 2 con la espera de `core/pacer.py`; la 3 con animaciones SVG).
 - Cronómetro.
 - Alarma, incluido el cruce de medianoche.

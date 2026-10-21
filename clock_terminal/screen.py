@@ -13,7 +13,7 @@ from clock_terminal.ansi import (
     draw_box,
     pad_to,
 )
-from clock_terminal.dial import DIAL_COLS, draw_dial
+from clock_terminal.dial import DIAL_COLS, DIAL_ROWS, draw_dial
 from clock_terminal.digits import draw_digital
 from clock_terminal.themes import current_theme
 from core.alarm import seconds_until_alarm
@@ -43,13 +43,14 @@ def alarm_lines(state, theme):
             return [colorize("¡¡ ALARMA !!", theme["alert"]), "Ctrl+C → a para quitarla"]
         return ["", ""]
     if alarm["time"] is None:
-        return ["ALARMA  ninguna", colorize("(Ctrl+C → a HH:MM:SS)", DIM)]
+        return ["ALARMA  ninguna", colorize("(Ctrl+C → a hora)", DIM)]
     left = seconds_until_alarm(state["seconds"], alarm["time"])
     return ["ALARMA  " + format_time(alarm["time"]), colorize("suena en " + format_time(left), DIM)]
 
 
 def panel_lines(state, theme):
-    """The 17 lines of the right panel: title, digital time, stopwatch, alarm, and status."""
+    """The lines of the right panel (as many as the dial has rows): title, digital time,
+    stopwatch, alarm, and status."""
     def center(text):
         return center_text(text, PANEL_WIDTH)
 
@@ -59,16 +60,18 @@ def panel_lines(state, theme):
     icon = "▶" if stopwatch["active"] else "■"
     speed = "calibrada" if state["calibrated"] else "sin calibrar"
 
-    lines = [center(colorize("RELOJ DE TERMINAL", theme["title"])), ""]
+    lines = [center(colorize("RELOJ DE TERMINAL", theme["title"])), "", ""]
     lines += [center(colorize(row, theme["digits"])) for row in digits]
-    lines += [center(colorize(caption, DIM)), ""]
+    lines += [center(colorize(caption, DIM)), "", ""]
     lines += [
         center(colorize("CRONÓMETRO  ", theme["label"]) + format_stopwatch(stopwatch["seconds"])),
         center(icon + " " + describe_stopwatch(stopwatch)),
         "",
+        "",
     ]
     lines += [center(line) for line in alarm_lines(state, theme)]
-    lines += ["", center("Tema: " + theme["name"]), center("Velocidad: " + speed), ""]
+    lines += ["", "", center("Tema: " + theme["name"]), center("Velocidad: " + speed)]
+    lines += [""] * (DIAL_ROWS - len(lines) - 1)
     lines.append(center(colorize("Ctrl+C = pausa y menú", DIM)))
     return lines
 
