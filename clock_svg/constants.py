@@ -2,9 +2,9 @@
 
 FILE_NAME = "reloj.svg"
 
-# Canvas geometry (viewBox 0 0 400 480)
+# Canvas geometry (viewBox 0 0 400 492)
 CANVAS_WIDTH = 400
-CANVAS_HEIGHT = 480
+CANVAS_HEIGHT = 492
 CENTER_X = 200
 CENTER_Y = 200
 STOPWATCH_CX = 300

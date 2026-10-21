@@ -1,7 +1,8 @@
-"""SVG elements of the stopwatch: mini-dial with its hand and label."""
+"""SVG elements of the stopwatch: mini-dial with its hand and a counting readout."""
 
 from mymath import second_hand_angle
 from clock_svg.constants import (
+    COLOR_HAND,
     COLOR_MINUTE_MARK,
     COLOR_OUTER_BEZEL,
     COLOR_SECOND_HAND,
@@ -11,6 +12,7 @@ from clock_svg.constants import (
     STOPWATCH_CY,
     STOPWATCH_R,
 )
+from clock_svg.digital import stopwatch_readout_svg
 from clock_svg.elements import hand, line_svg
 
 
@@ -28,9 +30,9 @@ def stopwatch_svg(seconds):
         f'<circle cx="{STOPWATCH_CX}" cy="{STOPWATCH_CY}" r="2.5" '
         f'fill="{COLOR_SECOND_HAND}"/>'
     )
-    minutes, secs = seconds // 60, seconds % 60
     parts.append(
-        f'<text x="{STOPWATCH_CX}" y="470" text-anchor="middle" font-size="12" '
-        f'letter-spacing="2" fill="{COLOR_SECONDARY_TEXT}">CRONO {minutes}:{secs:02d}</text>'
+        f'<text x="{STOPWATCH_CX}" y="463" text-anchor="middle" font-size="10" '
+        f'letter-spacing="3" fill="{COLOR_SECONDARY_TEXT}">CRONO</text>'
     )
+    parts.extend(stopwatch_readout_svg(STOPWATCH_CX, 481, seconds, 14, COLOR_HAND))
     return "\n".join(parts)
