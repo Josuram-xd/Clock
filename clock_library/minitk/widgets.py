@@ -12,7 +12,7 @@ class Widget:
     def __init__(self, master):
         self.master = master
         self.options = {}
-        self.pack_options = {"side": "top", "padx": 0, "pady": 0, "fill": None}
+        self.pack_options = {"side": "top", "padx": 0, "pady": 0, "fill": None, "anchor": "w"}
         self.children = []  # widgets packed inside, in order
 
     @property
@@ -23,12 +23,14 @@ class Widget:
             widget = widget.master
         return widget
 
-    def pack(self, side="top", padx=0, pady=0, fill=None):
+    def pack(self, side="top", padx=0, pady=0, fill=None, anchor="w"):
         """Place the widget in its master: stacked ('top') or in a row ('left').
 
-        fill='x' / 'y' / 'both' stretches it over the free space of the master.
+        fill='x' / 'y' / 'both' stretches it over the free space of the master;
+        anchor='w' or 'center' aligns a stacked widget horizontally.
         """
-        self.pack_options = {"side": side, "padx": padx, "pady": pady, "fill": fill}
+        self.pack_options = {"side": side, "padx": padx, "pady": pady, "fill": fill,
+                             "anchor": anchor}
         if self not in self.master.children:
             self.master.children.append(self)
         self.mark_changed()
@@ -120,7 +122,11 @@ class Frame(Widget):
             else:
                 if fill in ("x", "both"):
                     child_width = inner_width - 2 * pad_x
-                child.draw(surface, left + pad_x, top + cursor + pad_y, child_width, child_height)
+                shift = 0
+                if child.pack_options["anchor"] == "center":
+                    shift = (inner_width - child_width - 2 * pad_x) // 2
+                child.draw(surface, left + shift + pad_x, top + cursor + pad_y, child_width,
+                           child_height)
                 cursor += child_height + 2 * pad_y
 
 

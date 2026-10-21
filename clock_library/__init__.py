@@ -1,1 +1,1 @@
-"""Clock 1: ASCII analog dial built with our own mymath library."""
+"""Clock 1: analog clock window built with minitk, our own tkinter-style toolkit."""
