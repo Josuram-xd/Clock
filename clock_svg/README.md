@@ -8,7 +8,7 @@ El taller pide un reloj en Python con frontend, sin HTML ni CSS. Las reglas deja
 
 | Carpeta | Enfoque |
 |---|---|
-| `clock_library` | La librería matemática propia: seno y coseno sin `math` |
+| `clock_library` | Librerías propias: `mymath` y `minitk` (ventanas tipo tkinter) |
 | `clock_terminal` | Interfaz de terminal con color y hora digital |
 | `clock_svg` (esta) | Frontend gráfico generado como texto SVG |
 
@@ -16,10 +16,11 @@ Cada versión se ejecuta y evalúa sola; las tres comparten los paquetes `mymath
 
 ## Qué hace esta versión
 
-- Pide la hora con `input()`, una alarma opcional y un cronómetro opcional.
+- Pide la hora con `input()`, una alarma opcional, un cronómetro opcional y el formato (24 h o 12 h con AM/PM).
 - Genera `reloj.svg` con `open()` (función built-in): esfera, 60 marcas, números y manecillas, todo calculado con `sine` y `cosine` de `mymath`.
 - Las manecillas giran solas con `<animateTransform>`, partiendo de la hora ingresada.
-- Cronómetro como mini-dial animado.
+- La hora digital cuenta sola: cada dígito son varios `<text>` y un `<animate>` discreto sobre `visibility` muestra uno por turno; un `begin` negativo hace que arranque desde la hora que escribiste. Los dos puntos parpadean.
+- Cronómetro como mini-dial animado, con su lectura `MM:SS` contando igual.
 - Alarma: marca roja en la esfera y aviso «¡ALARMA!» parpadeante al llegar la hora, con `<set>` y `<animate>`.
 - Solo atributos de presentación SVG: no hay `<style>`, `style=` ni archivos `.html`.
 
@@ -33,6 +34,7 @@ clock_svg/
   document.py       ensamblado del documento SVG completo
   elements.py       líneas, bisel, marcas, números y manecillas
   alarm_svg.py      marca y aviso de la alarma
+  digital.py        hora digital y lectura del cronómetro que avanzan solas
   stopwatch_svg.py  mini-dial del cronómetro
   constants.py      geometría, paleta y fuentes
   file_writer.py    escritura del SVG en disco
@@ -51,4 +53,4 @@ No uses `-I`: ese modo quita el directorio actual de la ruta de módulos y Pytho
 
 Luego abre `reloj.svg` (se guarda en la carpeta desde la que ejecutas el programa) en cualquier navegador.
 
-Limitación: la hora digital del SVG es estática; actualizarla exigiría scripts.
+Limitación: el SVG arranca desde la hora escrita cada vez que se abre; no se sincroniza con el reloj del sistema.

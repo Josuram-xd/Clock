@@ -1,6 +1,6 @@
 # Reloj 2: terminal
 
-Reloj de terminal con color ANSI. Solo se importan módulos del propio proyecto (`mymath`, `core`, `clock_terminal`); no se importa nada de la librería estándar ni de terceros.
+Reloj de terminal que **corre solo**, con color ANSI. Solo se importan módulos del propio proyecto (`mymath`, `core`, `clock_terminal`); no se importa nada de la librería estándar ni de terceros.
 
 ## Por qué existen 3 carpetas
 
@@ -8,7 +8,7 @@ El taller pide un reloj en Python con frontend, sin HTML ni CSS. Las reglas deja
 
 | Carpeta | Enfoque |
 |---|---|
-| `clock_library` | La librería matemática propia: seno y coseno sin `math` |
+| `clock_library` | Librerías propias: `mymath` y `minitk` (ventanas tipo tkinter) |
 | `clock_terminal` (esta) | Interfaz de terminal con color y hora digital |
 | `clock_svg` | Frontend gráfico generado como texto SVG |
 
@@ -16,34 +16,58 @@ Cada versión se ejecuta y evalúa sola; las tres comparten los paquetes `mymath
 
 ## Qué hace esta versión
 
-- Pantalla con bordes unicode y colores ANSI escritos a mano.
-- Esfera analógica ASCII con manecillas de colores y hora digital en bloques.
+- La pantalla se redibuja en el mismo sitio (sin parpadeo): esfera analógica con líneas reales y números, hora digital en bloques con los dos puntos parpadeando, cronómetro y alarma con cuenta regresiva.
+- Cronómetro y alarma avanzan con el reloj; la alarma suena con la campana de la terminal y parpadea en rojo unos 20 s.
+- Formato 12 h / 24 h y 4 temas de color (clásico, neón, ámbar, hielo).
 - `sine` y `cosine` de la librería propia `mymath` (serie de Taylor).
-- Hora inicial pedida con `input()`; el reloj avanza con el teclado, no hay pausas reales.
-- Cronómetro, alarma y formato 12 h / 24 h.
+- Hora inicial pedida con `input()`; a partir de ahí el reloj corre por su cuenta.
+
+## Cómo corre sin `time`
+
+Sin `time` no se puede esperar un segundo, y sin librerías no se puede leer el teclado mientras el programa trabaja. Por eso:
+
+- La espera es un bucle de trabajo fijo (`core/pacer.py`, con `sum(range(n))`), dividido en 10 cuadros por segundo.
+- **Ctrl+C pausa el reloj** y abre el menú de comandos. `Enter` lo reanuda.
+- Esa espera depende de la velocidad del computador. Si el reloj va rápido o lento: `Ctrl+C` → `k` (calibrar). Se deja correr el reloj mientras se cronometra con el celular, se para con `Ctrl+C` y se escriben los segundos reales; la velocidad se corrige sola. Conviene repetirlo una o dos veces.
+
+## Menú de pausa (Ctrl+C)
+
+Cada comando acepta su dato en la misma línea (`a 07:30:00`) o lo pregunta si se omite.
+
+| Comando | Qué hace |
+|---|---|
+| `h [HH:MM:SS]` | Cambiar la hora |
+| `n [N]` | Avanzar N segundos de golpe |
+| `c [i\|p\|r]` | Cronómetro: iniciar, parar, reiniciar |
+| `a [HH:MM:SS]` | Fijar la alarma (`a quitar` la borra) |
+| `f` | Alternar 12 h / 24 h |
+| `t` | Cambiar de tema |
+| `k` | Calibrar la velocidad |
+| `q` | Salir |
+| `Enter` | Seguir |
 
 ## Estructura
 
 ```
 clock_terminal/
-  __main__.py    punto de entrada (llama a main())
-  application.py bucle principal de pantalla y teclas
-  actions.py     entrada del usuario y ejecución de teclas
-  state.py       estado del reloj y avance del tiempo
-  screen.py      textos de estado y construcción de la pantalla
-  dial.py        esfera analógica ASCII en color
-  digits.py      hora digital con caracteres de bloque
-  ansi.py        colores ANSI, longitud visible, centrado y cajas
+  __main__.py     punto de entrada (llama a main())
+  application.py  alterna entre el reloj corriendo y el menú de pausa
+  live.py         bucle en vivo: espera, avanza y redibuja hasta Ctrl+C
+  commands.py     menú de pausa y sus comandos
+  state.py        estado del reloj y avance del tiempo
+  screen.py       panel lateral y construcción de la pantalla
+  dial.py         esfera en una cuadrícula de celdas con colores
+  digits.py       hora digital con caracteres de bloque
+  themes.py       temas de color
+  ansi.py         códigos ANSI, cursor, longitud visible y cajas
 ```
 
 ## Cómo ejecutarlo
 
-Requiere una terminal con soporte de colores ANSI y UTF-8 (Windows Terminal). Desde la raíz del repositorio:
+Requiere una terminal con colores ANSI de 24 bits y UTF-8 (Windows Terminal) de al menos 80 columnas por 24 filas. Desde la raíz del repositorio:
 
 ```
 py -3 -m clock_terminal
 ```
 
 No uses `-I`: ese modo quita el directorio actual de la ruta de módulos y Python no encontraría los paquetes del proyecto.
-
-Teclas: `Enter` +1 s, `n` avanzar N s, `c` cronómetro (`i` iniciar, `p` parar, `r` reiniciar), `a` alarma (vacío la quita), `f` 12 h / 24 h, `q` salir.

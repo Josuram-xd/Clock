@@ -1,6 +1,6 @@
-# Reloj 1: librería propia (`mymath`)
+# Reloj 1: librería propia (`minitk` + `mymath`)
 
-Reloj analógico en ASCII hecho con Python y una librería matemática propia. Solo se importan módulos del propio proyecto (`mymath`, `core`, `clock_library`); no se importa nada de la librería estándar ni de terceros.
+Reloj analógico que **corre solo**, hecho con dos librerías escritas desde cero: `mymath` (seno y coseno por serie de Taylor) y **`minitk`**, una mini-librería de ventanas al estilo de `tkinter` que dibuja en la terminal. Solo se importan módulos del propio proyecto; no se importa nada de la librería estándar ni de terceros (ni siquiera `tkinter`).
 
 ## Por qué existen 3 carpetas
 
@@ -8,40 +8,90 @@ El taller pide un reloj en Python con frontend, sin HTML ni CSS. Las reglas deja
 
 | Carpeta | Enfoque |
 |---|---|
-| `clock_library` (esta) | La librería matemática propia: seno y coseno sin `math` |
+| `clock_library` (esta) | Librerías propias: `mymath` y `minitk` (ventanas tipo tkinter) |
 | `clock_terminal` | Interfaz de terminal con color y hora digital |
 | `clock_svg` | Frontend gráfico generado como texto SVG |
 
 Cada versión se ejecuta y evalúa sola; las tres comparten los paquetes `mymath` y `core` de la raíz del repositorio.
 
-## Qué hace esta versión
+## Cómo se ve y cómo se usa
 
-- Usa la librería `mymath`: `PI`, reducción de ángulo, `sine` y `cosine` por serie de Taylor, geometría polar y ángulos de manecillas.
-- `verify_library()` compara la librería con valores conocidos (opción 5 del menú).
-- Esfera analógica en ASCII con manecillas de hora (`H`), minuto (`M`) y segundo (`s`).
-- Hora inicial pedida al usuario con `input()`.
-- Cronómetro y alarma (lógica compartida en `core`).
+Ventana con la esfera analógica (dibujada con un `Canvas`), la hora digital en bloques, cronómetro, alarma y una fila de botones. El reloj avanza por su cuenta: no hay que pulsar nada para que se mueva.
+
+Sin `time` ni lectura de teclado no se puede esperar un segundo ni detectar una tecla mientras corre el programa, así que:
+
+- **Ctrl+C pausa la ventana** y abre un menú de teclas: escribe la tecla de un botón (por ejemplo `a` para la alarma) y se dispara como si lo pulsaras. `Enter` vuelve al reloj.
+- La espera es un bucle de trabajo fijo (`core/pacer.py`). Su duración depende del computador: si el reloj va rápido o lento, `Ctrl+C` → `calibrar`, se cronometra con el celular y se corrige sola la velocidad.
+
+| Tecla | Botón |
+|---|---|
+| `c` | Cronómetro (iniciar / parar) |
+| `r` | Reiniciar el cronómetro |
+| `a` | Fijar la alarma |
+| `x` | Quitar la alarma |
+| `h` | Cambiar la hora |
+| `n` | Avanzar N segundos |
+| `f` | 12 h / 24 h |
+| `v` | Autotest de `mymath` |
+| `q` | Salir |
+
+## `minitk`: la mini-librería tipo tkinter
+
+Se usa igual que tkinter: widgets que se colocan con `pack()`, temporizadores con `after()`, teclas con `bind()` y un `mainloop()`.
+
+```python
+from clock_library import minitk as tk
+
+root = tk.Tk("Hola")
+canvas = tk.Canvas(root, width=20, height=6, bg="navy")
+canvas.pack()
+canvas.create_oval(1, 1, 18, 10, outline="cyan")
+label = tk.Label(root, text="0", fg="yellow")
+label.pack()
+
+count = [0]
+def tick():
+    root.after(1000, tick)            # se reprograma primero
+    count[0] += 1
+    label["text"] = str(count[0])
+
+tk.Button(root, text="Salir", key="q", command=root.quit).pack()
+root.after(1000, tick)
+root.mainloop()
+```
+
+| Módulo | Qué hace |
+|---|---|
+| `window.py` | `Tk`: ventana, bucle de eventos, `after`, `bind`, menú de Ctrl+C y calibración |
+| `widgets.py` | `Widget`, `Frame` (organiza con `pack`), `Label` (texto o fuente grande) y `Button` |
+| `canvas.py` | `Canvas` con `create_line`, `create_oval`, `create_rectangle`, `create_text`, `coords`, `itemconfigure`, `delete` |
+| `raster.py` | Bresenham, elipses (con el seno y coseno de `mymath`) y rectángulos |
+| `surface.py` | Cuadrícula de celdas (carácter, color, fondo) que se imprime con códigos ANSI |
+| `colors.py` | Nombres de color y `#rrggbb` a RGB de 24 bits |
+| `fonts.py` | Dígitos grandes de 3 filas con caracteres de bloque |
+| `dialogs.py` | `askstring`, `askinteger` y `showinfo` |
+
+Cada celda de la terminal son 2 píxeles apilados (medio bloque `▀`), así el `Canvas` tiene píxeles casi cuadrados.
 
 ## Estructura
 
 ```
 clock_library/
-  __main__.py      punto de entrada (llama a main())
-  menu.py          bucle del menú y ejecución de opciones
-  input_reader.py  lectura de hora, segundos, alarma y cronómetro
-  state.py         estado del reloj y avance del tiempo
-  display.py       textos de la pantalla y del menú
-  dial.py          lienzo ASCII de la esfera (marcas, números, DDA)
+  __main__.py     punto de entrada
+  application.py  pide la hora, arma la ventana y programa el tic de 1 s con after()
+  interface.py    widgets de la ventana (esfera, textos y botones)
+  dial.py         esfera y manecillas sobre el Canvas (usa mymath)
+  actions.py      qué hace cada botón
+  state.py        estado del reloj y avance del tiempo
+  minitk/         la mini-librería de ventanas
 ```
 
 ## Cómo ejecutarlo
 
-Desde la raíz del repositorio:
+Desde la raíz del repositorio, en una terminal con colores de 24 bits y UTF-8 (Windows Terminal) de al menos 80 columnas por 24 filas:
 
 ```
 py -3 -m clock_library
 ```
 
 No uses `-I`: ese modo quita el directorio actual de la ruta de módulos y Python no encontraría los paquetes del proyecto.
-
-Menú: `1` avanzar 1 s, `2` avanzar N s, `3` cronómetro, `4` alarma, `5` autotest, `0` salir.

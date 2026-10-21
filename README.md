@@ -9,7 +9,7 @@ Reloj analógico en Python, entregado en **3 versiones independientes**, una por
 - Aumentar una funcionalidad pertinente (aquí: **cronómetro y alarma**).
 - No usar HTML ni CSS.
 
-Regla de imports del proyecto: **solo se importan módulos del propio proyecto** (`mymath`, `core` y los paquetes `clock_*`). No se importa ningún módulo de la librería estándar ni de terceros: el seno y el coseno son propios (serie de Taylor) y, como no se importa `time`, **la hora se pide al usuario con `input()` al iniciar**.
+Regla de imports del proyecto: **solo se importan módulos del propio proyecto** (`mymath`, `core` y los paquetes `clock_*`). No se importa ningún módulo de la librería estándar ni de terceros: el seno y el coseno son propios (serie de Taylor) y, como no se importa `time`, **la hora se pide al usuario con `input()` al iniciar** y los relojes corren por su cuenta con una espera calibrable (`core/pacer.py`).
 
 ## Convenciones
 
@@ -24,9 +24,9 @@ Las reglas dejan dudas sobre qué cuenta como frontend sin usar librerías. En v
 
 | Paquete | Enfoque | Frontend |
 |---|---|---|
-| [`clock_library`](clock_library) | Librería matemática propia (`mymath`): `sine`, `cosine`, geometría polar y autotest | Esfera ASCII |
-| [`clock_terminal`](clock_terminal) | Aplicación de terminal con colores ANSI, hora digital en bloques y formato 12 h / 24 h | Terminal |
-| [`clock_svg`](clock_svg) | Programa que escribe `reloj.svg` como texto, con manecillas animadas | Gráfico SVG en el navegador |
+| [`clock_library`](clock_library) | Librerías propias: `mymath` (`sine`, `cosine`, geometría polar) y `minitk`, una mini-librería de ventanas tipo tkinter | Ventana en la terminal (Canvas, botones, `after`) |
+| [`clock_terminal`](clock_terminal) | Aplicación de terminal con colores ANSI, hora digital en bloques, temas y formato 12 h / 24 h | Terminal |
+| [`clock_svg`](clock_svg) | Programa que escribe `reloj.svg` como texto, con manecillas y hora digital animadas | Gráfico SVG en el navegador |
 
 ## Estructura del repositorio
 
@@ -39,8 +39,9 @@ Las reglas dejan dudas sobre qué cuenta como frontend sin usar librerías. En v
 ├── core/                     lógica compartida, sin interfaz
 │   ├── time_utils.py         validación HH:MM:SS, conversiones y formatos
 │   ├── stopwatch.py          estado y operaciones del cronómetro
-│   └── alarm.py              estado y operaciones de la alarma
-├── clock_library/            versión 1 (ASCII)
+│   ├── alarm.py              estado y operaciones de la alarma
+│   └── pacer.py              espera sin reloj del sistema y calibración
+├── clock_library/            versión 1 (ventana con minitk, una mini-librería tipo tkinter)
 ├── clock_terminal/           versión 2 (terminal ANSI)
 ├── clock_svg/                versión 3 (SVG, con un reloj.svg de ejemplo)
 └── README.md
@@ -65,13 +66,23 @@ py -3 -m clock_svg
 ## Funcionalidades comunes
 
 - Hora inicial pedida con `input()` y validada (`HH:MM:SS`).
+- El reloj corre solo (versiones 1 y 2 con la espera de `core/pacer.py`; la 3 con animaciones SVG).
 - Cronómetro.
 - Alarma, incluido el cruce de medianoche.
 
+## Cómo corren solos los relojes sin `time`
+
+Sin `time` no hay `sleep` ni lectura del reloj del sistema, y sin librerías no se puede leer una tecla mientras el programa trabaja. En las versiones 1 y 2:
+
+- Cada segundo se "espera" quemando trabajo fijo (`sum(range(n))`, ver `core/pacer.py`), en 10 cuadros por segundo.
+- **Ctrl+C pausa** el reloj y abre un menú; `Enter` lo reanuda.
+- Como esa espera depende del computador, se **calibra**: se deja correr mientras se cronometra con el celular, se para con `Ctrl+C` y se escriben los segundos reales (`k` en la versión 2, `calibrar` en la 1). El pacer corrige la velocidad solo.
+
 ## Limitaciones conocidas
 
-- Sin acceso al reloj del sistema ni pausas reales: en las versiones 1 y 2 el reloj avanza con el teclado.
-- En la versión 3 la hora digital del SVG es estática; las manecillas sí giran solas.
+- La hora inicial se escribe a mano: el reloj es tan exacto como esa hora y la calibración.
+- Las versiones 1 y 2 se manejan con Ctrl+C y un menú, no con teclas en vivo.
+- En la versión 3 el SVG arranca desde la hora escrita cada vez que se abre.
 - El profesor indicó que SVG, librería propia y terminal no son válidos como frontend. Estas tres versiones son las alternativas posibles bajo la regla de no importar módulos externos al proyecto.
 
 ## Cómo se construyó
