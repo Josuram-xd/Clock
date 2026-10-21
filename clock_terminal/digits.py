@@ -1,6 +1,6 @@
-"""Dígitos tipo 7 segmentos con caracteres de bloque (3 filas)."""
+"""Seven-segment style digits drawn with block characters (3 rows)."""
 
-FUENTE_DIGITOS = {
+DIGIT_FONT = {
     "0": ["█▀█", "█ █", "█▄█"],
     "1": [" ▄█", "  █", "  ▀"],
     "2": ["▀▀█", "█▀▀", "▀▀▀"],
@@ -15,13 +15,13 @@ FUENTE_DIGITOS = {
 }
 
 
-def dibujar_digital(texto):
-    """Devuelve las 3 filas de un texto como 'HH:MM:SS' en bloques."""
-    filas = ["", "", ""]
-    for indice, caracter in enumerate(texto):
-        glifo = FUENTE_DIGITOS[caracter]
-        for fila in range(3):
-            if indice > 0:
-                filas[fila] += "  "
-            filas[fila] += glifo[fila]
-    return filas
+def draw_digital(text):
+    """Return the 3 rows of a text such as 'HH:MM:SS' drawn in blocks."""
+    rows = ["", "", ""]
+    for index, char in enumerate(text):
+        glyph = DIGIT_FONT[char]
+        for row in range(3):
+            if index > 0:
+                rows[row] += "  "
+            rows[row] += glyph[row]
+    return rows
