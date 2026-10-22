@@ -9,18 +9,19 @@ from mymath import (
     second_hand_angle,
 )
 
-CANVAS_COLS = 32
-CANVAS_ROWS = 16  # a row is 2 pixels tall, so the canvas is 32 x 32 pixels
-CENTER = 16
-RADIUS = 15
-NUMBER_RADIUS = 11.5
-HOUR_LENGTH = 7
-MINUTE_LENGTH = 10.5
-SECOND_LENGTH = 13
-ALARM_RADIUS = 15
+CANVAS_COLS = 40
+CANVAS_ROWS = 20  # a cell is 2 x 4 braille dots, so the canvas is 80 x 80 pixels
+CENTER = 39.5
+RADIUS = 39
+NUMBER_RADIUS = 27
+HOUR_LENGTH = 17
+MINUTE_LENGTH = 27
+SECOND_LENGTH = 33
+SECOND_TAIL = 8
+ALARM_RADIUS = 38
 
 BACKGROUND = "navy"
-BEZEL = "slate"
+BEZEL = "#64748b"
 HOUR_TICK = "silver"
 MINUTE_TICK = "gray"
 NUMBER = "cyan"
@@ -37,16 +38,16 @@ def to_pixel(radius, degrees):
 
 
 def draw_face(canvas):
-    """Bezel, 60 ticks, and the numbers 1 to 12 (these items never change)."""
-    canvas.create_oval(0, 0, 2 * CENTER - 1, 2 * CENTER - 1, outline=BEZEL)
+    """Rim, a dot per minute, a bold tick per hour, and the numbers 1 to 12."""
+    canvas.create_oval(0, 0, 2 * CENTER, 2 * CENTER, outline=BEZEL)
     for minute in range(60):
         degrees = hand_angle(minute, 60)
         if minute % 5 == 0:
-            x0, y0 = to_pixel(RADIUS - 3, degrees)
-            x1, y1 = to_pixel(RADIUS - 1, degrees)
-            canvas.create_line(x0, y0, x1, y1, fill=HOUR_TICK)
+            x0, y0 = to_pixel(RADIUS - 8, degrees)
+            x1, y1 = to_pixel(RADIUS - 2, degrees)
+            canvas.create_line(x0, y0, x1, y1, fill=HOUR_TICK, width=2)
         else:
-            x, y = to_pixel(RADIUS - 1, degrees)
+            x, y = to_pixel(RADIUS - 4, degrees)
             canvas.create_line(x, y, x, y, fill=MINUTE_TICK)
     for hour in range(1, 13):
         x, y = to_pixel(NUMBER_RADIUS, hand_angle(hour, 12))
@@ -54,20 +55,22 @@ def draw_face(canvas):
 
 
 def create_hands(canvas):
-    """Create the alarm mark and the three hands. Return their item ids by name."""
+    """Create the alarm mark and the hands. Return their item ids by name."""
     hands = {"alarm": canvas.create_oval(0, 0, 0, 0, outline=None, fill=None)}
-    hands["hour"] = canvas.create_line(CENTER, CENTER, CENTER, CENTER, fill=HOUR_HAND, width=2)
-    hands["minute"] = canvas.create_line(CENTER, CENTER, CENTER, CENTER, fill=MINUTE_HAND)
+    hands["hour"] = canvas.create_line(CENTER, CENTER, CENTER, CENTER, fill=HOUR_HAND, width=3)
+    hands["minute"] = canvas.create_line(CENTER, CENTER, CENTER, CENTER, fill=MINUTE_HAND,
+                                         width=2)
     hands["second"] = canvas.create_line(CENTER, CENTER, CENTER, CENTER, fill=SECOND_HAND)
-    canvas.create_oval(CENTER - 1, CENTER - 1, CENTER + 1, CENTER + 1,
+    canvas.create_oval(CENTER - 2, CENTER - 2, CENTER + 2, CENTER + 2,
                        outline=SECOND_HAND, fill=SECOND_HAND)
     return hands
 
 
-def place_hand(canvas, item, length, degrees):
-    """Point a hand from the center to its tip."""
+def place_hand(canvas, item, length, degrees, tail=0):
+    """Point a hand from the center (or from its tail behind the center) to its tip."""
+    start_x, start_y = to_pixel(-tail, degrees)
     x, y = to_pixel(length, degrees)
-    canvas.coords(item, CENTER, CENTER, x, y)
+    canvas.coords(item, start_x, start_y, x, y)
 
 
 def update_dial(canvas, hands, total_seconds, alarm_time):
@@ -76,12 +79,12 @@ def update_dial(canvas, hands, total_seconds, alarm_time):
     # The hour hand moves in whole minutes (seconds are not counted).
     place_hand(canvas, hands["hour"], HOUR_LENGTH, hour_hand_angle(hours, minutes, 0))
     place_hand(canvas, hands["minute"], MINUTE_LENGTH, minute_hand_angle(minutes, seconds))
-    place_hand(canvas, hands["second"], SECOND_LENGTH, second_hand_angle(seconds))
+    place_hand(canvas, hands["second"], SECOND_LENGTH, second_hand_angle(seconds), SECOND_TAIL)
     if alarm_time is None:
         canvas.itemconfigure(hands["alarm"], outline=None, fill=None)
         return
     alarm_hours, alarm_minutes, alarm_seconds = from_seconds(alarm_time)
     x, y = to_pixel(ALARM_RADIUS - 1,
                     hour_hand_angle(alarm_hours, alarm_minutes, alarm_seconds))
-    canvas.coords(hands["alarm"], x - 1, y - 1, x + 1, y + 1)
+    canvas.coords(hands["alarm"], x - 3, y - 3, x + 3, y + 3)
     canvas.itemconfigure(hands["alarm"], outline=ALARM_MARK, fill=ALARM_MARK)

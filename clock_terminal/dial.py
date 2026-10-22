@@ -1,118 +1,120 @@
-"""Analog dial on a grid of colored cells: ticks, numerals, and hands with real lines."""
+"""Analog dial drawn with braille dots: rim, ticks, numerals, hands, and the alarm mark."""
 
 from clock_terminal.ansi import colorize
+from core.braille import DOTS_X, DOTS_Y, cell_char, create_braille, set_dots
 from core.time_utils import from_seconds
 from mymath import (
-    cosine,
-    degrees_to_radians,
     hand_angle,
     hour_hand_angle,
     minute_hand_angle,
+    polar_point,
     second_hand_angle,
-    sine,
 )
+from mymath.raster import ellipse_fill, ellipse_outline, line_points
 
-DIAL_COLS = 33
-DIAL_ROWS = 17
-CENTER_COL = 16
-CENTER_ROW = 8
-RADIUS_COLS = 16.0  # a cell is about twice as tall as wide: 2 columns per row
-RADIUS_ROWS = 8.0
+DIAL_COLS = 41
+DIAL_ROWS = 21
+CENTER_X = DIAL_COLS * DOTS_X / 2  # dot coordinates: a cell is 2 dots wide and 4 tall,
+CENTER_Y = DIAL_ROWS * DOTS_Y / 2  # which makes the dots square
+RADIUS = 40
 
-HOUR_LENGTH = 0.45
-MINUTE_LENGTH = 0.68
-SECOND_LENGTH = 0.9
-NUMBER_RADIUS = 0.76
-
-
-def create_grid():
-    """Empty grid: every cell is a (character, role) pair; role None means no color."""
-    return [[(" ", None)] * DIAL_COLS for _ in range(DIAL_ROWS)]
+HOUR_TICK = (RADIUS - 8, RADIUS - 2)
+MINUTE_DOT_RADIUS = RADIUS - 4
+NUMBER_RADIUS = 27
+HOUR_LENGTH = 17
+MINUTE_LENGTH = 27
+SECOND_LENGTH = 33
+SECOND_TAIL = 8
 
 
-def polar_cell(fraction, degrees):
-    """(column, row) at a fraction (0 to 1) of the dial radius, degrees clockwise from 12."""
-    angle = degrees_to_radians(degrees)
-    column = round(CENTER_COL + fraction * RADIUS_COLS * sine(angle))
-    row = round(CENTER_ROW - fraction * RADIUS_ROWS * cosine(angle))
-    return column, row
+def to_dot(radius, degrees):
+    """Dot at 'radius' dots from the center, degrees clockwise from 12 (y grows down)."""
+    dx, dy = polar_point(0, 0, radius, degrees)
+    return CENTER_X + dx, CENTER_Y - dy
 
 
-def put(grid, column, row, char, role):
-    """Write a cell if it falls inside the grid."""
-    if 0 <= column < DIAL_COLS and 0 <= row < DIAL_ROWS:
-        grid[row][column] = (char, role)
+def radial_line(inner, outer, degrees):
+    """Dots of a segment between two radii at one angle."""
+    start_x, start_y = to_dot(inner, degrees)
+    end_x, end_y = to_dot(outer, degrees)
+    return line_points(start_x, start_y, end_x, end_y)
 
 
-def line_cells(start_col, start_row, end_col, end_row):
-    """Cells of the straight line between two cells (DDA algorithm)."""
-    steps = max(abs(end_col - start_col), abs(end_row - start_row))
-    if steps == 0:
-        return [(start_col, start_row)]
-    return [
-        (round(start_col + (end_col - start_col) * step / steps),
-         round(start_row + (end_row - start_row) * step / steps))
-        for step in range(steps + 1)
-    ]
-
-
-def hand_glyph(degrees, thick):
-    """Line character that follows the direction of a hand."""
-    direction = degrees % 180
-    if direction < 22.5 or direction >= 157.5:
-        return "┃" if thick else "│"
-    if direction < 67.5:
-        return "╱"
-    if direction < 112.5:
-        return "━" if thick else "─"
-    return "╲"
-
-
-def draw_hand(grid, degrees, length, role, thick=False):
-    """Draw a hand from the center to a fraction of the radius."""
-    end_col, end_row = polar_cell(length, degrees)
-    glyph = hand_glyph(degrees, thick)
-    for column, row in line_cells(CENTER_COL, CENTER_ROW, end_col, end_row):
-        put(grid, column, row, glyph, role)
-
-
-def draw_marks(grid):
-    """60 ticks on the rim: a dot per minute and a bullet per hour."""
+def draw_face(braille):
+    """Rim, a dot per minute and a bold tick per hour."""
+    box = (CENTER_X - RADIUS, CENTER_Y - RADIUS, CENTER_X + RADIUS, CENTER_Y + RADIUS)
+    set_dots(braille, ellipse_outline(*box), "bezel", thickness=1)
     for minute in range(60):
-        column, row = polar_cell(1.0, hand_angle(minute, 60))
-        put(grid, column, row, "•" if minute % 5 == 0 else "·", "ticks")
+        degrees = hand_angle(minute, 60)
+        if minute % 5 == 0:
+            set_dots(braille, radial_line(*HOUR_TICK, degrees), "hour_tick", thickness=2)
+        else:
+            set_dots(braille, [to_dot(MINUTE_DOT_RADIUS, degrees)], "ticks")
 
 
-def draw_numerals(grid):
-    """Numbers 1 to 12 inside the rim."""
+def draw_hands(braille, total_seconds):
+    """Hour and minute hands (thick), and the second hand with its tail and hub."""
+    hours, minutes, seconds = from_seconds(total_seconds)
+    # The hour hand moves in whole minutes (seconds are not counted).
+    set_dots(braille, radial_line(0, HOUR_LENGTH, hour_hand_angle(hours, minutes, 0)),
+             "hour", thickness=3)
+    set_dots(braille, radial_line(0, MINUTE_LENGTH, minute_hand_angle(minutes, seconds)),
+             "minute", thickness=1)
+    angle = second_hand_angle(seconds)
+    set_dots(braille, radial_line(-SECOND_TAIL, SECOND_LENGTH, angle), "second")
+    set_dots(braille, ellipse_fill(CENTER_X - 2, CENTER_Y - 2, CENTER_X + 2, CENTER_Y + 2),
+             "second")
+
+
+def draw_alarm_mark(braille, alarm_time):
+    """A filled dot on the rim at the angle of the alarm."""
+    hours, minutes, seconds = from_seconds(alarm_time)
+    x, y = to_dot(RADIUS - 1, hour_hand_angle(hours, minutes, seconds))
+    set_dots(braille, ellipse_fill(x - 3, y - 3, x + 3, y + 3), "alert")
+
+
+def build_cells(total_seconds, alarm_time=None):
+    """Compose the dial as a grid of (character, role) cells.
+
+    Layers, from back to front: face, numerals, alarm mark, hands.
+    """
+    face = create_braille(DIAL_COLS, DIAL_ROWS)
+    draw_face(face)
+    if alarm_time is not None:
+        draw_alarm_mark(face, alarm_time)
+    hands = create_braille(DIAL_COLS, DIAL_ROWS)
+    draw_hands(hands, total_seconds)
+
+    cells = [[(cell_char(face, c, r), face["owners"][r][c]) for c in range(DIAL_COLS)]
+             for r in range(DIAL_ROWS)]
     for hour in range(1, 13):
-        column, row = polar_cell(NUMBER_RADIUS, hand_angle(hour, 12))
+        x, y = to_dot(NUMBER_RADIUS, hand_angle(hour, 12))
+        column, row = round(x) // DOTS_X, round(y) // DOTS_Y
         text = str(hour)
         start = column - (len(text) - 1) // 2
         for offset, char in enumerate(text):
-            put(grid, start + offset, row, char, "numbers")
+            cells[row][start + offset] = (char, "numbers")
+    for row in range(DIAL_ROWS):
+        for column in range(DIAL_COLS):
+            if hands["masks"][row][column]:
+                cells[row][column] = (cell_char(hands, column, row), hands["owners"][row][column])
+    return cells
 
 
-def build_grid(total_seconds):
-    """Compose the dial grid for a time of day."""
-    hours, minutes, seconds = from_seconds(total_seconds)
-    grid = create_grid()
-    draw_marks(grid)
-    draw_numerals(grid)
-    # The hour hand moves in whole minutes (seconds are not counted).
-    draw_hand(grid, hour_hand_angle(hours, minutes, 0), HOUR_LENGTH, "hour", thick=True)
-    draw_hand(grid, minute_hand_angle(minutes, seconds), MINUTE_LENGTH, "minute")
-    draw_hand(grid, second_hand_angle(seconds), SECOND_LENGTH, "second")
-    put(grid, CENTER_COL, CENTER_ROW, "●", "second")
-    return grid
+def draw_dial(total_seconds, theme, alarm_time=None):
+    """Return the lines of the dial, colored with the roles of a theme.
 
-
-def draw_dial(total_seconds, theme):
-    """Return the lines of the dial, colored with the roles of a theme."""
+    Neighbor cells of the same role share one color code."""
     lines = []
-    for row in build_grid(total_seconds):
+    for row in build_cells(total_seconds, alarm_time):
         pieces = []
+        run, run_role = "", None
         for char, role in row:
-            pieces.append(colorize(char, theme[role]) if role else char)
+            if role != run_role and run:
+                pieces.append(colorize(run, theme[run_role]) if run_role else run)
+                run = ""
+            run_role = role
+            run += char
+        pieces.append(colorize(run, theme[run_role]) if run_role else run)
         lines.append("".join(pieces))
     return lines

@@ -6,18 +6,20 @@ from core.alarm import seconds_until_alarm
 from core.stopwatch import describe_stopwatch, format_stopwatch
 from core.time_utils import format_time, format_time_12h
 
-PANEL_WIDTH = 34
+PANEL_WIDTH = 28  # text width inside each framed section
 NOTICE_MS = 5000
+FRAME_COLOR = "#64748b"
 ALARM_COLOR = "red"
 TEXT_COLOR = "white"
 DIM_COLOR = "gray"
 
-# (button text, key, action name); one inner list per row of buttons
+# (button text, key, action name, background color); one inner list per row of buttons
 BUTTON_ROWS = [
-    [("Cronómetro", "c", "stopwatch"), ("Reiniciar", "r", "reset"),
-     ("Alarma", "a", "alarm"), ("Quitar alarma", "x", "clear_alarm")],
-    [("Hora", "h", "set_time"), ("Avanzar", "n", "advance"), ("12/24 h", "f", "format"),
-     ("Autotest", "v", "selftest"), ("Salir", "q", "quit")],
+    [("Cronómetro", "c", "stopwatch", "#166534"), ("Reiniciar", "r", "reset", "#475569"),
+     ("Alarma", "a", "alarm", "#92400e"), ("Quitar alarma", "x", "clear_alarm", "#7f1d1d")],
+    [("Hora", "h", "set_time", "#1e3a8a"), ("Avanzar", "n", "advance", "#334155"),
+     ("12/24 h", "f", "format", "#334155"), ("Autotest", "v", "selftest", "#4c1d95"),
+     ("Salir", "q", "quit", "#991b1b")],
 ]
 
 
@@ -41,27 +43,38 @@ class ClockUi:
         self.hands = create_hands(self.canvas)
 
         panel = tk.Frame(body)
-        panel.pack(side="left", padx=2)
-        self.title = self._label(panel, "RELOJ ANALÓGICO", fg="cyan", bold=True)
-        self.digital = tk.Label(panel, font="big", width=PANEL_WIDTH, bold=True)
-        self.digital.pack(pady=1)
-        self.caption = self._label(panel, "", fg=DIM_COLOR)
-        self._label(panel, "")
-        self.stopwatch = self._label(panel, "")
-        self.alarm = self._label(panel, "")
-        self.countdown = self._label(panel, "", fg=DIM_COLOR)
-        self._label(panel, "")
+        panel.pack(side="left", padx=1, anchor="center")
+        self._label(panel, "RELOJ ANALÓGICO", fg="cyan", bold=True)
+
+        time_box = self._section(panel, "Hora")
+        self.digital = self._label(time_box, "", font="big", bold=True)
+        self.caption = self._label(time_box, "", fg=DIM_COLOR)
+
+        stopwatch_box = self._section(panel, "Cronómetro")
+        self.stopwatch = self._label(stopwatch_box, "", font="big", fg="#4ade80", bold=True)
+        self.stopwatch_status = self._label(stopwatch_box, "")
+
+        alarm_box = self._section(panel, "Alarma")
+        self.alarm = self._label(alarm_box, "", bold=True)
+        self.countdown = self._label(alarm_box, "", fg=DIM_COLOR)
+
         self.notice = self._label(panel, "", fg="yellow", bold=True)
 
         for row in BUTTON_ROWS:
             strip = tk.Frame(root)
             strip.pack(anchor="center")
-            for text, key, name in row:
-                tk.Button(strip, text=text, key=key,
+            for text, key, name, color in row:
+                tk.Button(strip, text=text, key=key, bg=color,
                           command=lambda name=name: actions[name]()).pack(side="left", padx=1)
 
-    def _label(self, master, text, fg=TEXT_COLOR, bold=False):
-        label = tk.Label(master, text=text, fg=fg, width=PANEL_WIDTH, bold=bold)
+    def _section(self, master, title):
+        """A framed group of widgets with a title on its border."""
+        frame = tk.Frame(master, border=FRAME_COLOR, title=title)
+        frame.pack()
+        return frame
+
+    def _label(self, master, text, fg=TEXT_COLOR, bold=False, font="normal"):
+        label = tk.Label(master, text=text, fg=fg, width=PANEL_WIDTH, bold=bold, font=font)
         label.pack()
         return label
 
@@ -92,17 +105,17 @@ class ClockUi:
 
         stopwatch = state["stopwatch"]
         icon = "▶" if stopwatch["active"] else "■"
-        self.stopwatch["text"] = ("CRONÓMETRO  " + format_stopwatch(stopwatch["seconds"])
-                                  + "  " + icon + " " + describe_stopwatch(stopwatch))
+        self.stopwatch["text"] = format_stopwatch(stopwatch["seconds"])
+        self.stopwatch_status["text"] = icon + " " + describe_stopwatch(stopwatch)
 
         if alarm["ringing"]:
             blink = state["seconds"] % 2 == 0
             self.alarm.configure(text="¡¡ ALARMA !!" if blink else "", fg=ALARM_COLOR)
             self.countdown["text"] = "tecla x para quitarla"
         elif alarm["time"] is None:
-            self.alarm.configure(text="ALARMA  ninguna", fg=TEXT_COLOR)
-            self.countdown["text"] = "(tecla a para fijarla)"
+            self.alarm.configure(text="ninguna", fg=TEXT_COLOR)
+            self.countdown["text"] = "tecla a para fijarla"
         else:
-            self.alarm.configure(text="ALARMA  " + format_time(alarm["time"]), fg=TEXT_COLOR)
+            self.alarm.configure(text=format_time(alarm["time"]), fg=TEXT_COLOR)
             left = seconds_until_alarm(state["seconds"], alarm["time"])
             self.countdown["text"] = "suena en " + format_time(left)

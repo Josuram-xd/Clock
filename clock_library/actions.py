@@ -4,7 +4,8 @@ from clock_library import minitk as tk
 from clock_library.state import advance
 from core.alarm import clear_alarm, set_alarm
 from core.stopwatch import reset_stopwatch, start_stopwatch, stop_stopwatch
-from core.time_utils import format_time, parse_time
+from core.time_input import ask_time_of_day
+from core.time_utils import format_time
 from mymath import verify_library
 
 ADVANCE_LIMIT = 604800  # one week in seconds
@@ -31,12 +32,10 @@ def build_actions(root, state, ui):
         done("Cronómetro reiniciado.")
 
     def set_alarm_time():
-        text = tk.askstring("Alarma", "Hora de la alarma (HH:MM:SS, vacío = cancelar):")
-        if not text:
-            return
-        seconds = parse_time(text, two_digits=False)
+        print("── Alarma ──")
+        seconds = ask_time_of_day("Hora de la alarma (ej. 7:30 am, 1430; vacío = cancelar): ",
+                                  allow_empty=True)
         if seconds is None:
-            done("Hora de alarma no válida.")
             return
         set_alarm(state["alarm"], seconds)
         done("Alarma fijada a " + format_time(seconds) + ".")
@@ -46,12 +45,10 @@ def build_actions(root, state, ui):
         done("Alarma quitada.")
 
     def set_time():
-        text = tk.askstring("Hora", "Nueva hora (HH:MM:SS, vacío = cancelar):")
-        if not text:
-            return
-        seconds = parse_time(text, two_digits=False)
+        print("── Hora ──")
+        seconds = ask_time_of_day("Nueva hora (ej. 2:30 pm, 1430; vacío = cancelar): ",
+                                  allow_empty=True)
         if seconds is None:
-            done("Hora no válida.")
             return
         state["seconds"] = seconds
         done("Hora cambiada a " + format_time(seconds) + ".")

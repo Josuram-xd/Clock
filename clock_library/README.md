@@ -16,7 +16,9 @@ Cada versión se ejecuta y evalúa sola; las tres comparten los paquetes `mymath
 
 ## Cómo se ve y cómo se usa
 
-Ventana con la esfera analógica (dibujada con un `Canvas`), la hora digital en bloques, cronómetro, alarma y una fila de botones. El reloj avanza por su cuenta: no hay que pulsar nada para que se mueva.
+La hora se escribe como quieras: `14:30`, `2:30 pm`, `7am` o solo dígitos (`1430`, `230pm`); los segundos son opcionales y, si escribes una hora de 1 a 12 sin am/pm, pregunta AM o PM (Enter la deja como 24 h).
+
+Ventana con la esfera analógica (dibujada con un `Canvas`), paneles con título para la hora, el cronómetro y la alarma (con dígitos grandes) y dos filas de botones de colores. El reloj avanza por su cuenta: no hay que pulsar nada para que se mueva.
 
 Sin `time` ni lectura de teclado no se puede esperar un segundo ni detectar una tecla mientras corre el programa, así que:
 
@@ -64,14 +66,13 @@ root.mainloop()
 |---|---|
 | `window.py` | `Tk`: ventana, bucle de eventos, `after`, `bind`, menú de Ctrl+C y calibración |
 | `widgets.py` | `Widget`, `Frame` (organiza con `pack`), `Label` (texto o fuente grande) y `Button` |
-| `canvas.py` | `Canvas` con `create_line`, `create_oval`, `create_rectangle`, `create_text`, `coords`, `itemconfigure`, `delete` |
-| `raster.py` | Bresenham, elipses (con el seno y coseno de `mymath`) y rectángulos |
+| `canvas.py` | `Canvas` con `create_line`, `create_oval`, `create_rectangle`, `create_text`, `coords`, `itemconfigure`, `delete`; dibuja con puntos braille |
 | `surface.py` | Cuadrícula de celdas (carácter, color, fondo) que se imprime con códigos ANSI |
 | `colors.py` | Nombres de color y `#rrggbb` a RGB de 24 bits |
 | `fonts.py` | Dígitos grandes de 3 filas con caracteres de bloque |
 | `dialogs.py` | `askstring`, `askinteger` y `showinfo` |
 
-Cada celda de la terminal son 2 píxeles apilados (medio bloque `▀`), así el `Canvas` tiene píxeles casi cuadrados.
+Cada celda de la terminal es una cuadrícula de 2×4 puntos braille (`core/braille.py`), así el `Canvas` tiene 4 veces más resolución que la cuadrícula de caracteres y sus píxeles son cuadrados (una esfera de 40×20 celdas son 80×80 píxeles). Las líneas, óvalos y rectángulos los calcula `mymath/raster.py` (Bresenham y elipses con el seno y coseno propios).
 
 ## Estructura
 
@@ -88,7 +89,7 @@ clock_library/
 
 ## Cómo ejecutarlo
 
-Desde la raíz del repositorio, en una terminal con colores de 24 bits y UTF-8 (Windows Terminal) de al menos 80 columnas por 24 filas:
+Desde la raíz del repositorio, en una terminal con colores de 24 bits, UTF-8 y fuente con caracteres braille (Windows Terminal con Cascadia lo trae) de al menos 80 columnas por 26 filas:
 
 ```
 py -3 -m clock_library

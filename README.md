@@ -35,11 +35,14 @@ Las reglas dejan dudas sobre qué cuenta como frontend sin usar librerías. En v
 ├── mymath/                   librería matemática propia
 │   ├── trigonometry.py       PI, reduce_angle, sine, cosine, degrees_to_radians
 │   ├── geometry.py           polar_point y ángulos de las manecillas
+│   ├── raster.py             líneas (Bresenham), elipses y rectángulos en una cuadrícula de píxeles
 │   └── verification.py       autotest de la librería (verify_library)
 ├── core/                     lógica compartida, sin interfaz
 │   ├── time_utils.py         validación HH:MM:SS, conversiones y formatos
 │   ├── stopwatch.py          estado y operaciones del cronómetro
 │   ├── alarm.py              estado y operaciones de la alarma
+│   ├── time_input.py         pregunta una hora: segundos opcionales, am/pm y sin ':'
+│   ├── braille.py            cuadrícula de puntos braille (2×4 por celda) para dibujar
 │   └── pacer.py              espera sin reloj del sistema y calibración
 ├── clock_library/            versión 1 (ventana con minitk, una mini-librería tipo tkinter)
 ├── clock_terminal/           versión 2 (terminal ANSI)
@@ -65,7 +68,7 @@ py -3 -m clock_svg
 
 ## Funcionalidades comunes
 
-- Hora inicial pedida con `input()` y validada (`HH:MM:SS`).
+- Hora inicial pedida con `input()` y validada. En las versiones 1 y 2 acepta `14:30`, `2:30 pm`, `1430`…: segundos opcionales, am/pm y sin escribir los `:`.
 - El reloj corre solo (versiones 1 y 2 con la espera de `core/pacer.py`; la 3 con animaciones SVG).
 - Cronómetro.
 - Alarma, incluido el cruce de medianoche.
