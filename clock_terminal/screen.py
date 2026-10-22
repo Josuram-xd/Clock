@@ -14,14 +14,14 @@ from clock_terminal.ansi import (
     pad_to,
 )
 from clock_terminal.dial import DIAL_COLS, DIAL_ROWS, draw_dial
-from clock_terminal.digits import draw_digital
 from clock_terminal.themes import current_theme
 from core.alarm import seconds_until_alarm
+from core.bigfont import big_lines
 from core.pacer import FRAMES_PER_SECOND
 from core.stopwatch import describe_stopwatch, format_stopwatch
 from core.time_utils import format_time, format_time_12h
 
-PANEL_WIDTH = 31
+PANEL_WIDTH = 33
 SEPARATOR = " │ "
 BOX_WIDTH = DIAL_COLS + len(SEPARATOR) + PANEL_WIDTH
 BLINK_FRAME = FRAMES_PER_SECOND // 2  # the colon is hidden during the second half of a second
@@ -62,7 +62,7 @@ def panel_lines(state, theme):
         return center_text(text, PANEL_WIDTH)
 
     text, caption = clock_text(state)
-    digits = draw_digital(text, state["frame"] < BLINK_FRAME)
+    digits = big_lines(text, state["frame"] < BLINK_FRAME)
     stopwatch = state["stopwatch"]
     icon = "▶" if stopwatch["active"] else "■"
     speed = "calibrada" if state["calibrated"] else "sin calibrar"
@@ -71,10 +71,9 @@ def panel_lines(state, theme):
     lines += [center(colorize(row, theme["digits"])) for row in digits]
     lines += [center(colorize(caption, DIM)), ""]
     lines.append(rule("CRONÓMETRO", theme))
-    lines += [center(colorize(row, theme["minute"]))
-              for row in draw_digital(format_stopwatch(stopwatch["seconds"]))]
-    lines += [center(icon + " " + describe_stopwatch(stopwatch)), ""]
-    lines.append(rule("ALARMA", theme))
+    lines.append(center(colorize(format_stopwatch(stopwatch["seconds"]), BOLD + theme["minute"])
+                        + "   " + icon + " " + describe_stopwatch(stopwatch)))
+    lines += ["", rule("ALARMA", theme)]
     lines += [center(line) for line in alarm_lines(state, theme)]
     lines += ["", rule("ESTADO", theme)]
     lines.append(center("Tema " + theme["name"] + " · " + speed))

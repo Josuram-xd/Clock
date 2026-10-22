@@ -6,7 +6,7 @@ from core.alarm import seconds_until_alarm
 from core.stopwatch import describe_stopwatch, format_stopwatch
 from core.time_utils import format_time, format_time_12h
 
-PANEL_WIDTH = 28  # text width inside each framed section
+PANEL_WIDTH = 33  # text width inside each framed section
 NOTICE_MS = 5000
 FRAME_COLOR = "#64748b"
 ALARM_COLOR = "red"
@@ -51,7 +51,7 @@ class ClockUi:
         self.caption = self._label(time_box, "", fg=DIM_COLOR)
 
         stopwatch_box = self._section(panel, "Cronómetro")
-        self.stopwatch = self._label(stopwatch_box, "", font="big", fg="#4ade80", bold=True)
+        self.stopwatch = self._label(stopwatch_box, "", fg="#4ade80", bold=True)
         self.stopwatch_status = self._label(stopwatch_box, "")
 
         alarm_box = self._section(panel, "Alarma")
