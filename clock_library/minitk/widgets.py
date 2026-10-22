@@ -80,12 +80,18 @@ def outer_size(widget):
 class Frame(Widget):
     """Container that lays its children out in a column or a row."""
 
-    def __init__(self, master, bg=None, border=None, title=""):
+    def __init__(self, master, bg=None, border=None, title="", padding=(0, 0)):
         super().__init__(master)
-        self.options.update(bg=bg, border=border, title=title)
+        self.options.update(bg=bg, border=border, title=title, padding=padding)
 
     def _inset(self):
+        """Cells taken by the border (the same on every side)."""
         return 1 if self.options["border"] else 0
+
+    def _margins(self):
+        """(horizontal, vertical) cells between the outer edge and the children."""
+        pad_x, pad_y = self.options["padding"]
+        return self._inset() + pad_x, self._inset() + pad_y
 
     def natural_size(self):
         sizes = [outer_size(child) for child in self.children]
@@ -97,7 +103,8 @@ class Frame(Widget):
         else:
             content_width = max(width for width, _ in sizes)
             content_height = sum(height for _, height in sizes)
-        return content_width + 2 * self._inset(), content_height + 2 * self._inset()
+        margin_x, margin_y = self._margins()
+        return content_width + 2 * margin_x, content_height + 2 * margin_y
 
     def draw(self, surface, x, y, width, height):
         background = parse_color(self.options["bg"])
@@ -106,9 +113,9 @@ class Frame(Widget):
         if self.options["border"]:
             surface.border(x, y, width, height, parse_color(self.options["border"]),
                            self.options["title"])
-        inset = self._inset()
-        left, top = x + inset, y + inset
-        inner_width, inner_height = width - 2 * inset, height - 2 * inset
+        margin_x, margin_y = self._margins()
+        left, top = x + margin_x, y + margin_y
+        inner_width, inner_height = width - 2 * margin_x, height - 2 * margin_y
         row = bool(self.children) and self.children[0].pack_options["side"] == "left"
         cursor = 0
         for child in self.children:
@@ -207,3 +214,28 @@ class Button(Widget):
         background = parse_color(self.options["fg"] if self.pressed else self.options["bg"])
         foreground = parse_color(self.options["bg"] if self.pressed else self.options["fg"])
         surface.text(x, y, self.label().ljust(width), foreground, background, bold=True)
+
+
+PARTIAL_BLOCKS = " ▏▎▍▌▋▊▉"  # 0 to 7 eighths of a cell, filled from the left
+
+
+class ProgressBar(Widget):
+    """Horizontal bar filled according to options['value'], a number from 0 to 1."""
+
+    def __init__(self, master, width=20, value=0.0, fg="cyan", bg="slate"):
+        super().__init__(master)
+        self.options.update(width=width, value=value, fg=fg, bg=bg)
+
+    def natural_size(self):
+        return self.options["width"], 1
+
+    def draw(self, surface, x, y, width, height):
+        value = min(1.0, max(0.0, self.options["value"]))
+        filled = round(value * width * 8)  # in eighths of a cell
+        bar, track = parse_color(self.options["fg"]), parse_color(self.options["bg"])
+        for column in range(width):
+            eighths = min(8, max(0, filled - column * 8))
+            if eighths == 8:
+                surface.put(x + column, y, " ", None, bar)
+            else:
+                surface.put(x + column, y, PARTIAL_BLOCKS[eighths], bar, track)

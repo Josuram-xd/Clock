@@ -1,23 +1,22 @@
-"""Canvas: draw lines, ovals, rectangles, and text with tkinter-style items.
+"""Canvas: draw lines, ovals, rectangles, polygons, and text with tkinter-style items.
 
-Every terminal cell is a 2 x 4 grid of braille dots, so the canvas is
-width * 2 by height * 4 pixels and its pixels are square. Coordinates start at
-the top-left corner, with y growing downward, as in tkinter. Text items are
-written on whole cells: x // 2 is the column and y // 4 is the row. Items are
-drawn in the order they were created; where two touch the same cell, the later
-one owns it.
+Every terminal cell shows two stacked pixels (a half block with a foreground and
+a background color), so the canvas is width x (height * 2) pixels, each with its
+own true color, and the pixels are almost square. Coordinates start at the
+top-left corner, with y growing downward, as in tkinter, and may be fractions.
+
+Drawing is anti-aliased by supersampling: items are painted in the order they
+were created on a grid SCALE times finer, then every SCALE x SCALE block is
+averaged into one pixel. Text items are written on whole cells (x is the column,
+y // 2 is the row) over the pixels.
 """
 
 from clock_library.minitk.colors import parse_color
 from clock_library.minitk.widgets import Widget
-from core.braille import DOTS_X, DOTS_Y, cell_char, clear_cell, create_braille, set_dots
-from mymath import raster
+from mymath.raster import ellipse_points, ellipse_spans, line_polygon, polygon_spans
 
-SHAPES = {
-    "line": (raster.line_points, None),
-    "oval": (raster.ellipse_outline, raster.ellipse_fill),
-    "rectangle": (raster.rectangle_outline, raster.rectangle_fill),
-}
+SCALE = 3  # supersampling factor
+PIXELS_PER_ROW = 2
 
 
 class Canvas(Widget):
@@ -34,12 +33,12 @@ class Canvas(Widget):
     @property
     def pixel_width(self):
         """Width of the drawing area in pixels."""
-        return self.width * DOTS_X
+        return self.width
 
     @property
     def pixel_height(self):
         """Height of the drawing area in pixels."""
-        return self.height * DOTS_Y
+        return self.height * PIXELS_PER_ROW
 
     # -- creating and editing items ---------------------------------------
 
@@ -54,15 +53,20 @@ class Canvas(Widget):
         """Straight line; width is the thickness in pixels."""
         return self._create("line", (x0, y0, x1, y1), fill=fill, width=width, tags=tags)
 
-    def create_oval(self, x0, y0, x1, y1, outline="white", fill=None, width=1, tags=()):
+    def create_oval(self, x0, y0, x1, y1, fill=None, outline=None, width=1, tags=()):
         """Ellipse inscribed in the box (x0, y0)-(x1, y1)."""
-        return self._create("oval", (x0, y0, x1, y1), outline=outline, fill=fill, width=width,
+        return self._create("oval", (x0, y0, x1, y1), fill=fill, outline=outline, width=width,
                             tags=tags)
 
-    def create_rectangle(self, x0, y0, x1, y1, outline="white", fill=None, width=1, tags=()):
-        """Rectangle with an optional fill color."""
-        return self._create("rectangle", (x0, y0, x1, y1), outline=outline, fill=fill,
+    def create_rectangle(self, x0, y0, x1, y1, fill=None, outline=None, width=1, tags=()):
+        """Rectangle with an optional fill color and outline."""
+        return self._create("rectangle", (x0, y0, x1, y1), fill=fill, outline=outline,
                             width=width, tags=tags)
+
+    def create_polygon(self, *points, fill="white", outline=None, width=1, tags=()):
+        """Filled polygon through the given x, y pairs (tkinter-style flat coordinates)."""
+        return self._create("polygon", points, fill=fill, outline=outline, width=width,
+                            tags=tags)
 
     def create_text(self, x, y, text="", fill="white", anchor="center", bold=False, tags=()):
         """Text anchored at 'center', 'w' (starts at x) or 'e' (ends at x)."""
@@ -102,56 +106,109 @@ class Canvas(Widget):
     def natural_size(self):
         return self.width, self.height
 
-    def _draw_shape(self, braille, item):
-        kind, coords, options = item["kind"], item["coords"], item["options"]
-        outline_points, fill_points = SHAPES[kind]
-        thickness = options["width"]
-        if kind == "line":
-            color = parse_color(options["fill"])
-            if color is not None:
-                set_dots(braille, outline_points(*coords), color, thickness)
-            return
-        fill = parse_color(options["fill"])
-        if fill is not None:
-            set_dots(braille, fill_points(*coords), fill)
-        outline = parse_color(options["outline"])
-        if outline is not None:
-            set_dots(braille, outline_points(*coords), outline, thickness)
+    @staticmethod
+    def _paint(fine, spans, color):
+        """Fill pixel spans of the supersampled grid, clipped to its borders."""
+        fine_height, fine_width = len(fine), len(fine[0])
+        for y, first, end in spans:
+            first, end = max(first, 0), min(end, fine_width)
+            if 0 <= y < fine_height and end > first:
+                fine[y][first:end] = [color] * (end - first)
 
-    def _draw_text(self, braille, texts, item):
+    @staticmethod
+    def _scaled(points):
+        return [(x * SCALE, y * SCALE) for x, y in points]
+
+    def _stroke(self, fine, polyline, color, width, closed):
+        """Paint a polyline as a chain of thick segments."""
+        count = len(polyline)
+        for index in range(count if closed else count - 1):
+            (x0, y0), (x1, y1) = polyline[index], polyline[(index + 1) % count]
+            self._paint(fine, polygon_spans(line_polygon(x0, y0, x1, y1, width * SCALE)), color)
+
+    def _rasterize(self, fine, item):
+        kind, coords, options = item["kind"], item["coords"], item["options"]
+        fill, outline = parse_color(options["fill"]), parse_color(options.get("outline"))
+        width = options["width"]
+        if kind == "line":
+            x0, y0, x1, y1 = coords
+            points = self._scaled([(x0, y0), (x1, y1)])
+            self._stroke(fine, points, fill, width, closed=False)
+            return
+        if kind == "oval":
+            x0, y0, x1, y1 = coords
+            center_x, center_y = (x0 + x1) / 2 * SCALE, (y0 + y1) / 2 * SCALE
+            radius_x, radius_y = abs(x1 - x0) / 2 * SCALE, abs(y1 - y0) / 2 * SCALE
+            if fill is not None:
+                self._paint(fine, ellipse_spans(center_x, center_y, radius_x, radius_y), fill)
+            if outline is not None:
+                steps = max(24, round(4 * (radius_x + radius_y)))
+                ring = ellipse_points(center_x, center_y, radius_x, radius_y, steps)
+                self._stroke(fine, ring, outline, width, closed=True)
+            return
+        if kind == "rectangle":
+            x0, y0, x1, y1 = coords
+            points = self._scaled([(x0, y0), (x1, y0), (x1, y1), (x0, y1)])
+        else:  # polygon
+            points = self._scaled(list(zip(coords[0::2], coords[1::2])))
+        if fill is not None:
+            self._paint(fine, polygon_spans(points), fill)
+        if outline is not None:
+            self._stroke(fine, points, outline, width, closed=True)
+
+    def _pixels(self):
+        """Render every shape and average the supersampled grid into final pixels."""
+        background = parse_color(self.options["bg"])
+        fine = [[background] * (self.pixel_width * SCALE) for _ in range(self.pixel_height * SCALE)]
+        for item in self._items.values():
+            if item["kind"] != "text":
+                self._rasterize(fine, item)
+        area = SCALE * SCALE
+        pixels = []
+        for y in range(self.pixel_height):
+            rows = fine[y * SCALE:(y + 1) * SCALE]
+            line = []
+            for x in range(self.pixel_width):
+                first = rows[0][x * SCALE]
+                red = green = blue = 0
+                flat = True
+                for row in rows:
+                    for color in row[x * SCALE:(x + 1) * SCALE]:
+                        flat = flat and color == first
+                        red += color[0]
+                        green += color[1]
+                        blue += color[2]
+                line.append(first if flat else (red // area, green // area, blue // area))
+            pixels.append(line)
+        return pixels
+
+    def draw(self, surface, x, y, width, height):
+        pixels = self._pixels()
+        for row in range(min(self.height, height)):
+            for column in range(min(self.width, width)):
+                top, bottom = pixels[row * 2][column], pixels[row * 2 + 1][column]
+                if top == bottom:
+                    surface.put(x + column, y + row, " ", None, top)
+                else:
+                    surface.put(x + column, y + row, "▀", top, bottom)
+        for item in self._items.values():
+            if item["kind"] == "text":
+                self._draw_text(surface, x, y, pixels, item)
+
+    def _draw_text(self, surface, x, y, pixels, item):
         options = item["options"]
-        x, y = item["coords"]
+        text_x, text_y = item["coords"]
         text = options["text"]
-        start = round(x) // DOTS_X
+        start = round(text_x)
         if options["anchor"] == "center":
             start -= len(text) // 2
         elif options["anchor"] == "e":
             start -= len(text) - 1
-        row = round(y) // DOTS_Y
+        row = round(text_y) // PIXELS_PER_ROW
         for offset, char in enumerate(text):
             column = start + offset
             if 0 <= column < self.width and 0 <= row < self.height:
-                clear_cell(braille, column, row)
-                texts[(column, row)] = (char, parse_color(options["fill"]), options["bold"])
-
-    def draw(self, surface, x, y, width, height):
-        braille = create_braille(self.width, self.height)
-        texts = {}
-        for item in self._items.values():
-            if item["kind"] == "text":
-                self._draw_text(braille, texts, item)
-            else:
-                self._draw_shape(braille, item)
-                # a shape that reaches a cell with text takes it over (later items are on top)
-                for column, row in list(texts):
-                    if braille["masks"][row][column]:
-                        del texts[(column, row)]
-        background = parse_color(self.options["bg"])
-        for row in range(min(self.height, height)):
-            for column in range(min(self.width, width)):
-                if (column, row) in texts:
-                    char, color, bold = texts[(column, row)]
-                    surface.put(x + column, y + row, char, color, background, bold)
-                else:
-                    surface.put(x + column, y + row, cell_char(braille, column, row),
-                                braille["owners"][row][column], background)
+                top, bottom = pixels[row * 2][column], pixels[row * 2 + 1][column]
+                background = tuple((a + b) // 2 for a, b in zip(top, bottom))
+                surface.put(x + column, y + row, char, parse_color(options["fill"]),
+                            background, options["bold"])
