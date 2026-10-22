@@ -16,7 +16,7 @@ Cada versión se ejecuta y evalúa sola; las tres comparten los paquetes `mymath
 
 ## Qué hace esta versión
 
-- La pantalla se redibuja en el mismo sitio (sin parpadeo): esfera analógica con líneas reales y números, hora digital en bloques con los dos puntos parpadeando, cronómetro y alarma con cuenta regresiva.
+- La pantalla se redibuja en el mismo sitio (sin parpadeo): esfera analógica dibujada con puntos braille (aro, una marca por hora, números, manecillas con cola y marca de la alarma), hora digital y cronómetro en dígitos grandes con los dos puntos parpadeando, y secciones con título (cronómetro, alarma y estado).
 - Cronómetro y alarma avanzan con el reloj; la alarma suena con la campana de la terminal y parpadea en rojo unos 20 s.
 - Formato 12 h / 24 h y 4 temas de color (clásico, neón, ámbar, hielo).
 - `sine` y `cosine` de la librería propia `mymath` (serie de Taylor).
@@ -56,7 +56,7 @@ clock_terminal/
   commands.py     menú de pausa y sus comandos
   state.py        estado del reloj y avance del tiempo
   screen.py       panel lateral y construcción de la pantalla
-  dial.py         esfera en una cuadrícula de celdas con colores
+  dial.py         esfera con puntos braille (core/braille.py) y colores por rol
   digits.py       hora digital con caracteres de bloque
   themes.py       temas de color
   ansi.py         códigos ANSI, cursor, longitud visible y cajas
@@ -64,7 +64,7 @@ clock_terminal/
 
 ## Cómo ejecutarlo
 
-Requiere una terminal con colores ANSI de 24 bits y UTF-8 (Windows Terminal) de al menos 80 columnas por 26 filas. Desde la raíz del repositorio:
+Requiere una terminal con colores ANSI de 24 bits, UTF-8 y fuente con caracteres braille (Windows Terminal con Cascadia lo trae) de al menos 80 columnas por 26 filas. Desde la raíz del repositorio:
 
 ```
 py -3 -m clock_terminal
