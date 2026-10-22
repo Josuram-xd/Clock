@@ -1,6 +1,6 @@
 # Taller: Desarrollo de un Reloj con Python
 
-Reloj analógico en Python, entregado en **3 versiones independientes**, una por paquete, que comparten una librería matemática propia (`mymath`) y la lógica común (`core`).
+Reloj analógico en Python, entregado en **3 versiones independientes**, una por paquete, que comparten una librería matemática propia (`mymath`) y la lógica común (`core`), se crearon 3 versiones para saber cual puen aplicar para el reloj por las reglas de la asignación, cada una es independiente para su calificación.
 
 ## Reglas del taller
 
