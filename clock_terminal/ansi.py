@@ -59,13 +59,13 @@ def center_text(text, width):
 
 
 def draw_box(lines, width, color):
-    """Draw a box with unicode borders. A None line is a separator."""
-    border = colorize("║", color)
-    output = [colorize("╔" + "═" * width + "╗", color)]
+    """Draw a box with rounded unicode borders. A None line is a separator."""
+    border = colorize("│", color)
+    output = [colorize("╭" + "─" * width + "╮", color)]
     for line in lines:
         if line is None:
-            output.append(colorize("╟" + "─" * width + "╢", color))
+            output.append(colorize("├" + "─" * width + "┤", color))
         else:
             output.append(border + pad_to(line, width) + border)
-    output.append(colorize("╚" + "═" * width + "╝", color))
+    output.append(colorize("╰" + "─" * width + "╯", color))
     return output

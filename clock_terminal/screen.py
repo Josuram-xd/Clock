@@ -40,12 +40,19 @@ def alarm_lines(state, theme):
     alarm = state["alarm"]
     if alarm["ringing"]:
         if state["frame"] < BLINK_FRAME:
-            return [colorize("¡¡ ALARMA !!", theme["alert"]), "Ctrl+C → a para quitarla"]
+            return [colorize("¡¡ ALARMA !!", theme["alert"]), "Ctrl+C → a quitar para silenciar"]
         return ["", ""]
     if alarm["time"] is None:
-        return ["ALARMA  ninguna", colorize("(Ctrl+C → a hora)", DIM)]
+        return ["ninguna", colorize("Ctrl+C → a hora para fijarla", DIM)]
     left = seconds_until_alarm(state["seconds"], alarm["time"])
-    return ["ALARMA  " + format_time(alarm["time"]), colorize("suena en " + format_time(left), DIM)]
+    return [colorize(format_time(alarm["time"]), BOLD),
+            colorize("suena en " + format_time(left), DIM)]
+
+
+def rule(label, theme):
+    """A section heading: '── LABEL ───────' across the panel."""
+    tail = PANEL_WIDTH - len(label) - 5
+    return colorize("── ", DIM) + colorize(label, theme["label"]) + colorize(" " + "─" * tail, DIM)
 
 
 def panel_lines(state, theme):
@@ -60,17 +67,17 @@ def panel_lines(state, theme):
     icon = "▶" if stopwatch["active"] else "■"
     speed = "calibrada" if state["calibrated"] else "sin calibrar"
 
-    lines = [center(colorize("RELOJ DE TERMINAL", theme["title"])), "", ""]
+    lines = [center(colorize("RELOJ DE TERMINAL", theme["title"])), ""]
     lines += [center(colorize(row, theme["digits"])) for row in digits]
-    lines += [center(colorize(caption, DIM)), "", ""]
-    lines += [
-        center(colorize("CRONÓMETRO  ", theme["label"]) + format_stopwatch(stopwatch["seconds"])),
-        center(icon + " " + describe_stopwatch(stopwatch)),
-        "",
-        "",
-    ]
+    lines += [center(colorize(caption, DIM)), ""]
+    lines.append(rule("CRONÓMETRO", theme))
+    lines += [center(colorize(row, theme["minute"]))
+              for row in draw_digital(format_stopwatch(stopwatch["seconds"]))]
+    lines += [center(icon + " " + describe_stopwatch(stopwatch)), ""]
+    lines.append(rule("ALARMA", theme))
     lines += [center(line) for line in alarm_lines(state, theme)]
-    lines += ["", "", center("Tema: " + theme["name"]), center("Velocidad: " + speed)]
+    lines += ["", rule("ESTADO", theme)]
+    lines.append(center("Tema " + theme["name"] + " · " + speed))
     lines += [""] * (DIAL_ROWS - len(lines) - 1)
     lines.append(center(colorize("Ctrl+C = pausa y menú", DIM)))
     return lines
@@ -79,7 +86,7 @@ def panel_lines(state, theme):
 def build_screen(state):
     """Build the full screen text: boxed dial and panel, plus the notice line."""
     theme = current_theme(state)
-    dial = draw_dial(state["seconds"], theme)
+    dial = draw_dial(state["seconds"], theme, state["alarm"]["time"])
     separator = colorize(SEPARATOR, theme["frame"])
     panel = panel_lines(state, theme)
     rows = [pad_to(d, DIAL_COLS) + separator + pad_to(p, PANEL_WIDTH) for d, p in zip(dial, panel)]
