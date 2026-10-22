@@ -1,9 +1,9 @@
-"""Raster primitives on a pixel grid: lines, rectangles, and ellipses.
+"""Raster primitives on a pixel grid: lines, rectangles, and ellipses (pure geometry).
 
 Ellipse outlines use our own sine and cosine (mymath), not a standard library.
 """
 
-from mymath import PI, cosine, sine
+from mymath.trigonometry import PI, cosine, sine
 
 
 def line_points(x0, y0, x1, y1):
