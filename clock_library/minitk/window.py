@@ -117,9 +117,11 @@ class Tk(Frame):
         surface = Surface(width, height)
         self.draw(surface, 0, 0, width, height)
         lines = [line + CLEAR_LINE for line in surface.lines()]
-        lines.append(DIM + " " + self.hint + RESET + CLEAR_LINE)
+        if self.hint:
+            lines.append(DIM + " " + self.hint + RESET + CLEAR_LINE)
         ring = "\a" if self._bell else ""
-        print(CURSOR_HOME + "\n".join(lines) + "\n" + CLEAR_BELOW + ring, end="", flush=True)
+        # no newline after the last line: a window as tall as the terminal must not scroll it
+        print(CURSOR_HOME + "\n".join(lines) + CLEAR_BELOW + ring, end="", flush=True)
         self._bell = False
         self.changed = False
 
@@ -179,6 +181,7 @@ class Tk(Frame):
         while self._running:
             print(CLEAR_SCREEN, end="")
             self.draw_window()
+            print()
             print("Pausa. Teclas disponibles:")
             for button in self.buttons:
                 if button.options["key"]:
