@@ -43,6 +43,7 @@ Las reglas dejan dudas sobre qué cuenta como frontend sin usar librerías. En v
 │   ├── alarm.py              estado y operaciones de la alarma
 │   ├── time_input.py         pregunta una hora: segundos opcionales, am/pm y sin ':'
 │   ├── braille.py            cuadrícula de puntos braille (2×4 por celda) para dibujar
+│   ├── bigfont.py            dígitos grandes de 5 filas con bloques completos
 │   └── pacer.py              espera sin reloj del sistema y calibración
 ├── clock_library/            versión 1 (ventana con minitk, una mini-librería tipo tkinter)
 ├── clock_terminal/           versión 2 (terminal ANSI)

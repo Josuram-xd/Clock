@@ -1,7 +1,7 @@
 """Widgets: the base class, Frame (container with pack layout), Label, and Button."""
 
 from clock_library.minitk.colors import parse_color
-from clock_library.minitk.fonts import big_lines
+from core.bigfont import big_lines
 
 PRESS_MS = 250  # how long a button stays highlighted after being invoked
 
