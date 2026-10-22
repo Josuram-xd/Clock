@@ -27,7 +27,8 @@ class Widget:
         """Place the widget in its master: stacked ('top') or in a row ('left').
 
         fill='x' / 'y' / 'both' stretches it over the free space of the master;
-        anchor='w' or 'center' aligns a stacked widget horizontally.
+        anchor='w' or 'center' aligns a widget across its row or column
+        (horizontally when stacked, vertically when in a row).
         """
         self.pack_options = {"side": side, "padx": padx, "pady": pady, "fill": fill,
                              "anchor": anchor}
@@ -117,7 +118,11 @@ class Frame(Widget):
             if row:
                 if fill in ("y", "both"):
                     child_height = inner_height - 2 * pad_y
-                child.draw(surface, left + cursor + pad_x, top + pad_y, child_width, child_height)
+                shift = 0
+                if child.pack_options["anchor"] == "center":
+                    shift = (inner_height - child_height - 2 * pad_y) // 2
+                child.draw(surface, left + cursor + pad_x, top + shift + pad_y, child_width,
+                           child_height)
                 cursor += child_width + 2 * pad_x
             else:
                 if fill in ("x", "both"):
