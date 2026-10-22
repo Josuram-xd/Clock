@@ -18,7 +18,11 @@ Cada versión se ejecuta y evalúa sola; las tres comparten los paquetes `mymath
 
 La hora se escribe como quieras: `14:30`, `2:30 pm`, `7am` o solo dígitos (`1430`, `230pm`); los segundos son opcionales y, si escribes una hora de 1 a 12 sin am/pm, pregunta AM o PM (Enter la deja como 24 h).
 
-Ventana con la esfera analógica (dibujada con un `Canvas`), paneles con título para la hora (en dígitos grandes), el cronómetro y la alarma y dos filas de botones de colores. El reloj avanza por su cuenta: no hay que pulsar nada para que se mueva.
+Esta versión no imita a la de terminal: es una **ventana de aplicación** dibujada en píxeles de color verdadero.
+
+- **Esfera de reloj moderno:** aro metálico, disco con degradado, bastones de hora (sin números), manecillas cónicas con sombra, segundero con cola, buje dorado y una marca naranja donde suena la alarma. Todo con anti-aliasing.
+- **Barra de título y de estado**, tarjetas con fondo para la hora, el cronómetro y la alarma (con dígitos grandes), **barras de progreso** (segundos del minuto y cuánto falta para la alarma) y dos filas de botones de colores.
+- El reloj avanza por su cuenta: no hay que pulsar nada para que se mueva.
 
 Sin `time` ni lectura de teclado no se puede esperar un segundo ni detectar una tecla mientras corre el programa, así que:
 
@@ -65,14 +69,14 @@ root.mainloop()
 | Módulo | Qué hace |
 |---|---|
 | `window.py` | `Tk`: ventana, bucle de eventos, `after`, `bind`, menú de Ctrl+C y calibración |
-| `widgets.py` | `Widget`, `Frame` (organiza con `pack`), `Label` (texto o fuente grande) y `Button` |
-| `canvas.py` | `Canvas` con `create_line`, `create_oval`, `create_rectangle`, `create_text`, `coords`, `itemconfigure`, `delete`; dibuja con puntos braille |
+| `widgets.py` | `Widget`, `Frame` (organiza con `pack`; color de fondo, borde y `padding`), `Label` (texto o fuente grande), `Button` y `ProgressBar` |
+| `canvas.py` | `Canvas` con `create_line`, `create_oval`, `create_rectangle`, `create_polygon`, `create_text`, `coords`, `itemconfigure`, `delete`; píxeles a todo color con anti-aliasing |
 | `surface.py` | Cuadrícula de celdas (carácter, color, fondo) que se imprime con códigos ANSI |
 | `colors.py` | Nombres de color y `#rrggbb` a RGB de 24 bits |
 | `core/bigfont.py` | (compartido) dígitos grandes de 5 filas con bloques completos, para `Label(font="big")` |
 | `dialogs.py` | `askstring`, `askinteger` y `showinfo` |
 
-Cada celda de la terminal es una cuadrícula de 2×4 puntos braille (`core/braille.py`), así el `Canvas` tiene 4 veces más resolución que la cuadrícula de caracteres y sus píxeles son cuadrados (una esfera de 40×20 celdas son 80×80 píxeles). Las líneas, óvalos y rectángulos los calcula `mymath/raster.py` (Bresenham y elipses con el seno y coseno propios).
+Cada celda de la terminal muestra dos píxeles apilados (un medio bloque `▀` con color de texto y de fondo), así el `Canvas` tiene un píxel de color propio por cada uno y píxeles casi cuadrados. El anti-aliasing es por *supersampling*: se pinta en una cuadrícula 3 veces más fina y se promedia cada bloque de 3×3. Los polígonos, óvalos y líneas gruesas los calcula `mymath/raster.py` (relleno por barrido, con el seno y coseno propios).
 
 ## Estructura
 
@@ -89,7 +93,7 @@ clock_library/
 
 ## Cómo ejecutarlo
 
-Desde la raíz del repositorio, en una terminal con colores de 24 bits, UTF-8 y fuente con caracteres braille (Windows Terminal con Cascadia lo trae) de al menos 80 columnas por 26 filas:
+Desde la raíz del repositorio, en una terminal con colores de 24 bits y UTF-8 (Windows Terminal) de al menos 80 columnas por 26 filas:
 
 ```
 py -3 -m clock_library

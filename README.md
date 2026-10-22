@@ -24,7 +24,7 @@ Las reglas dejan dudas sobre qué cuenta como frontend sin usar librerías. En v
 
 | Paquete | Enfoque | Frontend |
 |---|---|---|
-| [`clock_library`](clock_library) | Librerías propias: `mymath` (`sine`, `cosine`, geometría polar) y `minitk`, una mini-librería de ventanas tipo tkinter | Ventana en la terminal (Canvas, botones, `after`) |
+| [`clock_library`](clock_library) | Librerías propias: `mymath` (`sine`, `cosine`, geometría polar) y `minitk`, una mini-librería de ventanas tipo tkinter | Ventana de aplicación en la terminal (Canvas de píxeles, tarjetas, barras de progreso, `after`) |
 | [`clock_terminal`](clock_terminal) | Aplicación de terminal con colores ANSI, hora digital en bloques, temas y formato 12 h / 24 h | Terminal |
 | [`clock_svg`](clock_svg) | Programa que escribe `reloj.svg` como texto, con manecillas y hora digital animadas | Gráfico SVG en el navegador |
 
@@ -35,14 +35,14 @@ Las reglas dejan dudas sobre qué cuenta como frontend sin usar librerías. En v
 ├── mymath/                   librería matemática propia
 │   ├── trigonometry.py       PI, reduce_angle, sine, cosine, degrees_to_radians
 │   ├── geometry.py           polar_point y ángulos de las manecillas
-│   ├── raster.py             líneas (Bresenham), elipses y rectángulos en una cuadrícula de píxeles
+│   ├── raster.py             líneas (Bresenham), elipses, polígonos y relleno por barrido
 │   └── verification.py       autotest de la librería (verify_library)
 ├── core/                     lógica compartida, sin interfaz
 │   ├── time_utils.py         validación HH:MM:SS, conversiones y formatos
 │   ├── stopwatch.py          estado y operaciones del cronómetro
 │   ├── alarm.py              estado y operaciones de la alarma
 │   ├── time_input.py         pregunta una hora: segundos opcionales, am/pm y sin ':'
-│   ├── braille.py            cuadrícula de puntos braille (2×4 por celda) para dibujar
+│   ├── braille.py            cuadrícula de puntos braille (2×4 por celda); la usa la versión de terminal
 │   ├── bigfont.py            dígitos grandes de 5 filas con bloques completos
 │   └── pacer.py              espera sin reloj del sistema y calibración
 ├── clock_library/            versión 1 (ventana con minitk, una mini-librería tipo tkinter)
